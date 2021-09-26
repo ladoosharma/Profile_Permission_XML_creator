@@ -1,0 +1,32 @@
+<template>
+    <div class="slds-form">
+        <div class="slds-form-element slds-form-element_horizontal">
+            <label class="slds-form-element__label" for="horizontal-input-id-01">Choose Profile/Permission</label>
+            <div class="slds-form-element__control">
+                <input type="file" name="profilePermissionFile" onchange={handleUploadFinished}/>
+            </div>
+        </div>
+        <!--<div class="slds-form-element slds-form-element_horizontal">
+            <label class="slds-form-element__label" for="horizontal-input-id-02">All PermissionSet Or Profile</label>
+            <lightning-combobox name="profilePermissionPicklist" options={profilePermissionOption}
+                value={whichProfileOrPermission} onchange={refreshApexCall}></lightning-combobox>
+        </div>-->
+        <div class="slds-form-element slds-form-element_horizontal">
+            <label class="slds-form-element__label" for="horizontal-input-id-02">Objects</label>
+            <lightning-combobox data-id="objects" name="objects" options={allObjOptions} disabled="true"
+                onchange={fetchObjMetadata}></lightning-combobox>
+        </div>
+        <br>
+        <lightning-button label="download file" name="download" onclick={downloadFile}></lightning-button>
+        <fieldset class="slds-form-element slds-form-element_horizontal">
+            
+                <div class="slds-form-element__control">
+                    <!--data table will go here -->
+                    <c-edit-profile-permission-table-cmp onobjaccesschange={modifyObjAccess} onfieldaccesschange={modifyFldAccess} current-obj-selected={objectSelected} ></c-edit-profile-permission-table-cmp>
+                </div>
+            
+
+        </fieldset>
+
+    </div>
+</template>

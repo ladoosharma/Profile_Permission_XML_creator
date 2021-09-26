@@ -1,0 +1,66 @@
+<template>
+    <div data-id="tableSection" class="slds-hide">
+        <table class="slds-table slds-table_cell-buffer slds-table_bordered" data-id="objPermissionTable">
+            <thead>
+                <tr class="slds-line-height_reset">
+                    <th>PermissionType</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Create</td>
+                    <td><lightning-input type="checkbox" data-id="allowCreate" onchange={mapObjAccess}></lightning-input></td>
+                </tr>
+                <tr>
+                    <td>Edit</td>
+                    <td><lightning-input type="checkbox" data-id="allowEdit" onchange={mapObjAccess}></lightning-input></td>
+                </tr>
+                <tr>
+                    <td>Read</td>
+                    <td><lightning-input type="checkbox" data-id="allowRead" onchange={mapObjAccess}></lightning-input></td>
+                </tr>
+                <tr>
+                    <td>Delete</td>
+                    <td><lightning-input type="checkbox" data-id="allowDelete" onchange={mapObjAccess}></lightning-input></td>
+                </tr>
+                <tr>
+                    <td>Modify All</td>
+                    <td><lightning-input type="checkbox" data-id="modifyAllRecords" onchange={mapObjAccess}></lightning-input></td>
+                </tr>
+                <tr>
+                    <td>View All</td>
+                    <td><lightning-input type="checkbox" data-id="viewAllRecords" onchange={mapObjAccess}></lightning-input></td>
+                </tr>
+            </tbody>
+        </table>
+        <br><br><br>
+        <lightning-input name="fieldfinder" onchange={searchFld} label="Search field"></lightning-input>
+        <br><br><br>
+        <table class="slds-table slds-table_cell-buffer slds-table_bordered"  data-id="fieldPermissionTable">
+            <thead>
+                <tr class="slds-line-height_reset">
+                    <th>Field</th>
+                    <th>Read</th>
+                    <th>Edit</th>
+                </tr>
+            </thead>
+            <tbody>
+                <template for:each={listOfFldColumn} for:item="field">
+                    <tr key={field.name}>
+                        <td>
+                            {field.label}
+                        </td>
+                        <td>
+                            <lightning-input type="checkbox" data-fld={field.name} data-accesstype="readable" disabled={field.updateable} checked={field.readable} onchange={mapNewPermission}></lightning-input>
+                        </td>
+                        <td>
+                            <lightning-input type="checkbox" data-fld={field.name} data-accesstype="editable" disabled={field.updateable} checked={field.editable} onchange={mapNewPermission}></lightning-input>
+                        </td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+    </div>
+</template>
