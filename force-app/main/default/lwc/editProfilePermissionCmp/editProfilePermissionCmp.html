@@ -12,6 +12,10 @@
                 value={whichProfileOrPermission} onchange={refreshApexCall}></lightning-combobox>
         </div>-->
         <div class="slds-form-element slds-form-element_horizontal">
+            <label class="slds-form-element__label" for="horizontal-input-id-02">Tab/Objects</label>
+            <lightning-combobox data-id="taborobjects" name="taborobjects" options={tabOrObjPicklists} disabled="true"
+                onchange={tabOrObjects}></lightning-combobox>
+
             <label class="slds-form-element__label" for="horizontal-input-id-02">Objects</label>
             <lightning-combobox data-id="objects" name="objects" options={allObjOptions} disabled="true"
                 onchange={fetchObjMetadata}></lightning-combobox>

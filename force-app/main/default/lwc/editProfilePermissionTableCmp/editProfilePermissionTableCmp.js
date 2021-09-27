@@ -85,10 +85,10 @@ export default class EditProfilePermissionTableCmp extends LightningElement {
         let readChecbox = this.template.querySelector("[data-fld='" + checkBoxDom.dataset.fld + "'][data-accesstype='readable']");
         let editChecbox = this.template.querySelector("[data-fld='" + checkBoxDom.dataset.fld + "'][data-accesstype='editable']");
         let relayDataObj = { fldName: checkBoxDom.dataset.fld, checked: checkBoxDom.checked, accessType: checkBoxDom.dataset.accesstype };
-        if(this.fieldAccessXMLList[checkBoxDom.dataset.fld]){
+        if (this.fieldAccessXMLList[checkBoxDom.dataset.fld]) {
             this.fieldAccessXMLList[checkBoxDom.dataset.fld][checkBoxDom.dataset.accesstype] = checkBoxDom.checked;
-        }else{
-            this.fieldAccessXMLList[checkBoxDom.dataset.fld] = {readable:false, editable:false};
+        } else {
+            this.fieldAccessXMLList[checkBoxDom.dataset.fld] = { readable: false, editable: false };
         }
         this.fieldAccessXMLList[checkBoxDom.dataset.fld][checkBoxDom.dataset.accesstype] = checkBoxDom.checked;
         if (checkBoxDom.dataset.accesstype === "editable") {
@@ -132,7 +132,10 @@ export default class EditProfilePermissionTableCmp extends LightningElement {
                 //there i need to change all the keys to lowecase
                 if (!searchKey || key.toLowerCase().startsWith(searchKey.toLowerCase())) {
                     if (fieldXMLList[key]) {
-                        fieldXMLList[key] = { editable: (fieldXMLList[key].editable === 'true') ? true : false, readable: (fieldXMLList[key].readable === 'true') ? true : false };
+                        fieldXMLList[key] = {
+                            editable: (fieldXMLList[key].editable === 'true' || fieldXMLList[key].editable) ? true : false,
+                            readable: (fieldXMLList[key].readable === 'true' || fieldXMLList[key].readable) ? true : false
+                        };
                         listOfFldColumn.push(Object.assign({}, fieldXMLList[key], tempElement, { name: key }));
                     } else {
                         listOfFldColumn.push(Object.assign({}, { "editable": false, "readable": false }, tempElement, { name: key }));

@@ -1,11 +1,26 @@
 import { LightningElement, track, wire, api } from 'lwc';
 import getAllObjects from '@salesforce/apex/EditProfilePermissionController.getAllObjects';
 import getSelectedObjInfo from '@salesforce/apex/EditProfilePermissionController.getObjectInfos';
-
+import getAllTabs from '@salesforce/apex/EditProfilePermissionController.getAllTabs';
 export default class EditProfilePermissionCmp extends LightningElement {
-
+    tabOrObjPicklists = [{label:'Tab', value:'tab'}, {label:'Custom/Standard Object', value:'object'}];
     @wire(getAllObjects, {})
     allObjectApiList({ data, error }) {
+        //this.currentObjectInfos = value;
+
+        if (data) {
+            let tempList = [];
+            data.forEach(element => {
+                tempList.push({ value: element, label: element });
+            });
+            this.allObjOptions = tempList;
+        }
+        if (error) {
+            //this.handleErrorInFetchingOnj(error);
+        }
+    }
+    @wire(getAllTabs, {})
+    allTabApiList({ data, error }) {
         //this.currentObjectInfos = value;
 
         if (data) {
@@ -60,7 +75,8 @@ export default class EditProfilePermissionCmp extends LightningElement {
 
     }
     showContent(reader) {
-        this.template.querySelector("[data-id='objects']").disabled = false;
+        //this.template.querySelector("[data-id='objects']").disabled = false;
+        this.template.querySelector("[data-id='taborobjects']").disabled = false;
         this.permissionFileContent = reader.result;
     }
     fetchObjMetadata(evt) {
