@@ -1,0 +1,19 @@
+<template>
+    <div data-id="tableSection" class="slds-show">
+        <table class="slds-table slds-table_cell-buffer slds-table_bordered" data-id="objPermissionTable">
+            <thead>
+                <tr class="slds-line-height_reset">
+                    <th>Tab Access</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{tabName}</td>
+                    <td><lightning-combobox name="TabAccess" options={tabAccessChoice} value={tabAccess} onchange={relayDataToParent}></lightning-combobox></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</template>

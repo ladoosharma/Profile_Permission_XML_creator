@@ -28,7 +28,7 @@ public with sharing class EditProfilePermissionController {
     @AuraEnabled(cacheable=true)
     public static String getAllTabs (){
         try {
-            ProfilePermissionHTTPHandler handler = new ProfilePermissionHTTPHandler(URL.getSalesforceBaseUrl().toExternalForm()+'/services/data/v52.0/tooling/query/?q=SELECT+Id,Name+from+TabDefinition',
+            ProfilePermissionHTTPHandler handler = new ProfilePermissionHTTPHandler(URL.getSalesforceBaseUrl().toExternalForm()+'/services/data/v52.0/tooling/query/?q=SELECT+Id,Name,Label+from+TabDefinition',
                                                                                     null, '');
             HttpResponse response= handler.callEndpoint('GET');
             return response.getBody();                                                                     

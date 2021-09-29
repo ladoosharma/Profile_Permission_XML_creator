@@ -2,8 +2,9 @@ import { LightningElement, track, wire, api } from 'lwc';
 import getAllObjects from '@salesforce/apex/EditProfilePermissionController.getAllObjects';
 import getSelectedObjInfo from '@salesforce/apex/EditProfilePermissionController.getObjectInfos';
 import getAllTabs from '@salesforce/apex/EditProfilePermissionController.getAllTabs';
+
 export default class EditProfilePermissionCmp extends LightningElement {
-    tabOrObjPicklists = [{label:'Tab', value:'tab'}, {label:'Custom/Standard Object', value:'object'}];
+    tabOrObjPicklists = [{ label: 'Tab', value: 'tab' }, { label: 'Custom/Standard Object', value: 'object' }];
     @wire(getAllObjects, {})
     allObjectApiList({ data, error }) {
         //this.currentObjectInfos = value;
@@ -13,7 +14,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
             data.forEach(element => {
                 tempList.push({ value: element, label: element });
             });
-            this.allObjOptions = tempList;
+            this.objectList = tempList;
         }
         if (error) {
             //this.handleErrorInFetchingOnj(error);
@@ -25,10 +26,13 @@ export default class EditProfilePermissionCmp extends LightningElement {
 
         if (data) {
             let tempList = [];
-            data.forEach(element => {
-                tempList.push({ value: element, label: element });
-            });
-            this.allObjOptions = tempList;
+            const recordData = JSON.parse(data);
+            if (recordData) {
+                recordData.records.forEach(element => {
+                    tempList.push({ value: element.Name, label: element.Label });
+                });
+            }
+            this.tabList = tempList;
         }
         if (error) {
             //this.handleErrorInFetchingOnj(error);
@@ -50,6 +54,12 @@ export default class EditProfilePermissionCmp extends LightningElement {
     existingXMLDoc;
     @track
     fileName;
+    @track
+    tabList;
+    @track
+    objectList;
+    @track
+    isObject;
     handleObjectData(data) {
 
     }
@@ -81,30 +91,87 @@ export default class EditProfilePermissionCmp extends LightningElement {
     }
     fetchObjMetadata(evt) {
         let element = evt.currentTarget;
-        if (element.name === 'objects') {
+        let tabOrObjectDom = this.template.querySelector("[data-id='taborobjects']");
+
+        if (element.name === 'objects' && tabOrObjectDom.value === 'object') {
             this.objectSelected = element.value;
             getSelectedObjInfo({ objName: this.objectSelected })
                 .then((data) => {
+                    //this.isObject = true;
                     this.currentObjectInfos = JSON.parse(data);
                     this.compareXMLandCreateTable();
+                    this.template.querySelector("[data-id='profileTable']").style.display = 'inline';
+                    this.template.querySelector("[data-id='tabTable']").style.display = 'none';
                 })
                 .catch((error) => {
 
                 })
+        } else if (tabOrObjectDom.value === 'tab') {
+            this.template.querySelector("[data-id='profileTable']").style.display = 'none';
+            this.template.querySelector("[data-id='tabTable']").style.display = 'inline';
+            this.generateTabAccess(element.value);
         }
 
+    }
+    /**
+     * This method will compare the XML tree and generate the table which will show the 
+     * Tab level access 
+     * @param {String} _tabName 
+     * @returns 
+     */
+    generateTabAccess(_tabName) {
+        let childTabComponent = this.template.querySelector('c-edit-tab-level-access-cmp');
+        let xmlTree = this.parseDocument();
+        if (xmlTree && _tabName) {
+            let tabAccessNode = xmlTree.getElementsByTagName('tabVisibilities');
+            if (tabAccessNode) {
+                let givenTabAccess = [...tabAccessNode].filter((node) => {
+                    if (node.childNodes) {
+                        let child = node.childNodes;
+                        let tabAccess = [...child].filter((child) => {
+                            if (child.nodeName === 'tab' && child.innerHTML.toLowerCase() === _tabName.toLocaleLowerCase()) {
+                                return true;
+                            }
+                        });
+                        return (tabAccess.length > 0);
+                    }
+                });
+                if (childTabComponent) {
+                    childTabComponent.tabName = _tabName;
+                    childTabComponent.tabAccess = (givenTabAccess.length > 0) ? [...givenTabAccess[0].childNodes].filter((node) => { return (node.nodeName === 'visibility'); })[0].innerHTML : 'none';
+                }
+            } else if (childTabComponent) {
+                childTabComponent.tabName = _tabName;
+                childTabComponent.tabAccess = 'none';
+            }
+        }
+    }
+    /**
+     * 
+     * @returns {Object}
+     */
+    parseDocument() {
+        let text, parser, xmlDoc, fieldMap;
+        text = this.permissionFileContent;
+        parser = new DOMParser();
+        xmlDoc = (!this.existingXMLDoc) ? parser.parseFromString(text, 'text/xml') : this.existingXMLDoc;
+        if (!this.existingXMLDoc) {
+            this.existingXMLDoc = xmlDoc;
+        }
+        return xmlDoc;
     }
     compareXMLandCreateTable() {
         if (this.currentObjectInfos && this.permissionFileContent) {
             //do all work here 
-            let text, parser, xmlDoc, fieldMap;
+            /*let text, parser, xmlDoc, fieldMap;
             text = this.permissionFileContent;
             parser = new DOMParser();
             xmlDoc = (!this.existingXMLDoc) ? parser.parseFromString(text, 'text/xml') : this.existingXMLDoc;
             if (!this.existingXMLDoc) {
                 this.existingXMLDoc = xmlDoc;
-            }
-            fieldMap = new Map();
+            }*/
+            let xmlDoc = this.parseDocument();
+            let fieldMap = new Map();
             this.currentObjectInfos.fields.forEach((field) => {
                 fieldMap.set(field.name, { label: field.label, updateable: field.updateable });
             });
@@ -274,7 +341,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
                 if (node.nodeName !== 'field' && node.nodeName === evt.detail.accessType) {
                     clonedAccess.childNodes[indx].innerHTML = evt.detail.checked;
                 }
-            })
+            });
             let firstNodeWithThisObj = allFieldNode.find((eachNode) => {
                 let objFld = [...eachNode.childNodes].find((child) => {
                     if (child.nodeName === 'field' && child.innerHTML.startsWith(this.objectSelected)) {
@@ -311,6 +378,75 @@ export default class EditProfilePermissionCmp extends LightningElement {
             alert('Please select file !!!!')
         }
 
+    }
+    tabOrObjects(evt) {
+        if (evt.currentTarget) {
+            this.template.querySelector("[data-id='objects']").disabled = false;
+            if (evt.currentTarget.value === 'object') {
+                this.allObjOptions = this.objectList;
+            } else if (evt.currentTarget.value === 'tab') {
+                this.allObjOptions = this.tabList;
+            }
+        }
+    }
+    handleTabVisibility(evt) {
+        let xmlTree = this.existingXMLDoc;
+        //let evtData = evt.dat
+        if (xmlTree && evt.detail) {
+            let existingTabVisiblities = xmlTree.getElementsByTagName('tabVisibilities');
+            let changedTabVisibilty = [...existingTabVisiblities].filter((node) => {
+                if (node.childNodes) {
+                    let child = node.childNodes;
+                    let tabAccess = [...child].filter((child) => {
+                        if (child.nodeName === 'tab' && child.innerHTML.toLowerCase() === evt.detail.tabName.toLocaleLowerCase()) {
+                            return true;
+                        }
+                    });
+                    return (tabAccess.length > 0);
+                }
+            });
+            if (changedTabVisibilty.length > 0) {
+                [...xmlTree.getElementsByTagName('tabVisibilities')].forEach((node, index) => {
+                    if (node.childNodes) {
+                        let tabAccess = [...node.childNodes].filter((child) => {
+                            if (child.nodeName === 'tab' && child.innerHTML.toLowerCase() === evt.detail.tabName.toLocaleLowerCase()) {
+                                return true;
+                            }
+                        });
+                        if (tabAccess) {
+                            [...[...xmlTree.getElementsByTagName('tabVisibilities')][index].childNodes].forEach((child, indexVar) => {
+                                if (child.nodeName === 'visibilty') {
+                                    [...[...xmlTree.getElementsByTagName('tabVisibilities')][index].childNodes][indexVar].innerHTML = evt.detail.tabAccess;
+                                }
+                            });
+                        }
+                    }
+                });
+            } else if (existingTabVisiblities.length > 0) {
+                let clonedAccess = existingTabVisiblities[0].cloneNode(true);
+                [...clonedAccess.childNodes].forEach((node, indx) => {
+                    if (node.nodeName === 'tab') {
+                        clonedAccess.childNodes[indx].innerHTML = evt.detail.tabName;
+                    }
+                    if (node.nodeName === 'visibility') {
+                        clonedAccess.childNodes[indx].innerHTML = evt.detail.tabAccess;
+                    }
+                });
+                xmlTree.documentElement.insertBefore(clonedAccess, existingTabVisiblities[0]);
+
+            } else {
+                let tabVisibilityElement = xmlTree.createElement('tabVisibilities');
+                let tabNameElement = xmlTree.createElement('tab');
+                tabNameElement.innerHTML = evt.detail.tabName;
+                let tabAccessElemnt = xmlTree.createElement('visibility');
+                tabAccessElemnt.innerHTML = evt.detail.tabAccess;
+                tabVisibilityElement.appendChild(tabNameElement);
+                tabVisibilityElement.appendChild(tabAccessElemnt);
+                xmlTree.documentElement.insertBefore(tabVisibilityElement, xmlTree.getElementsByTagName('fieldPermissions')[0]);
+            }
+            this.existingXMLDoc = xmlTree;
+
+        }
     }
 
 }
