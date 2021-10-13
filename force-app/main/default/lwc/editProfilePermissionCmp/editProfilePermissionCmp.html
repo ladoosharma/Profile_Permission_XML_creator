@@ -2,11 +2,14 @@
 <!-- sldsValidatorIgnore -->
 <template>
     <div class="slds-form">
+        <c-load-j-szip-component></c-load-j-szip-component>
         <div class="slds-form-element slds-form-element_horizontal">
             <label class="slds-form-element__label" for="horizontal-input-id-01">Choose Profile/Permission</label>
-            <div class="slds-form-element__control">
+            <!--<div class="slds-form-element__control">
                 <input type="file" name="profilePermissionFile" onchange={handleUploadFinished}/>
-            </div>
+            </div>-->
+            <lightning-combobox name="profilePermissionPicklist" options={profileOptionList}
+                     onchange={getProfilePermission}></lightning-combobox>
         </div>
         <!--<div class="slds-form-element slds-form-element_horizontal">
             <label class="slds-form-element__label" for="horizontal-input-id-02">All PermissionSet Or Profile</label>

@@ -10,7 +10,6 @@ export default class EditTabLevelAccessCmp extends LightningElement {
         { value: "DefaultOn", label: "Default On" },
         { value: "DefaultOff", label: "Default Off" }
     ];
-
     relayDataToParent(evt) {
         this.dispatchEvent(new CustomEvent('tabaccesschange', { detail: { tabName: this.tabName, tabAccess: evt.currentTarget.value } }));
     }

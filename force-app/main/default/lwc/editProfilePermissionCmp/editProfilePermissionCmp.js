@@ -2,6 +2,9 @@ import { LightningElement, track, wire, api } from 'lwc';
 import getAllObjects from '@salesforce/apex/EditProfilePermissionController.getAllObjects';
 import getSelectedObjInfo from '@salesforce/apex/EditProfilePermissionController.getObjectInfos';
 import getAllTabs from '@salesforce/apex/EditProfilePermissionController.getAllTabs';
+import getAllProfilePermission from '@salesforce/apex/EditProfilePermissionController.getAllProfilePermission'
+import getProfilePermissionXML from '@salesforce/apex/EditProfilePermissionController.getProfilePermissionXML'
+import checkRetrieveStatus from '@salesforce/apex/EditProfilePermissionController.checkRetrieveStatus'
 
 export default class EditProfilePermissionCmp extends LightningElement {
     tabOrObjPicklists = [{ label: 'Tab', value: 'tab' }, { label: 'Custom/Standard Object', value: 'object' }];
@@ -10,11 +13,38 @@ export default class EditProfilePermissionCmp extends LightningElement {
         //this.currentObjectInfos = value;
 
         if (data) {
-            let tempList = [];
-            data.forEach(element => {
-                tempList.push({ value: element, label: element });
+
+            var xmlDoc = new DOMParser().parseFromString(data, 'text/xml');
+            let tempList = [...xmlDoc.getElementsByTagName('fullName')].map((node) => {
+                if (node) {
+                    if (node.childNodes) {
+                        return { value: node.childNodes[0].nodeValue, label: node.childNodes[0].nodeValue };
+                    }
+                }
             });
+            /*data.forEach(element => {
+                tempList.push({ value: element, label: element });
+            });*/
             this.objectList = tempList;
+        }
+        if (error) {
+            //this.handleErrorInFetchingOnj(error);
+        }
+    }
+    @wire(getAllProfilePermission, {})
+    allProfilePermissionApiList({ data, error }) {
+        //this.currentObjectInfos = value;
+
+        if (data) {
+            var xmlDoc = new DOMParser().parseFromString(data, 'text/xml');
+            let tempList = [...xmlDoc.getElementsByTagName('fullName')].map((node) => {
+                if (node) {
+                    if (node.childNodes) {
+                        return { value: node.childNodes[0].nodeValue, label: node.childNodes[0].nodeValue };
+                    }
+                }
+            });
+            this.profileOptionList = tempList;
         }
         if (error) {
             //this.handleErrorInFetchingOnj(error);
@@ -38,6 +68,8 @@ export default class EditProfilePermissionCmp extends LightningElement {
             //this.handleErrorInFetchingOnj(error);
         }
     }
+    @track
+    profileOptionList;
     @api
     objectSelected = 'Account';
     @track
@@ -66,6 +98,47 @@ export default class EditProfilePermissionCmp extends LightningElement {
     handleErrorInFetchingOnj(error) {
 
     }
+    getProfilePermission(evt) {
+        const fieldValue = evt.currentTarget;
+        let jsZipComponent = this.template.querySelector('c-load-j-szip-component');
+        if (fieldValue.value && jsZipComponent) {
+            getProfilePermissionXML({ apiName: fieldValue.value, typeOfMetadata: 'Profile' })
+                .then((data) => {
+                    let xmlData = new DOMParser().parseFromString(data, 'text/xml');
+                    if (xmlData) {
+                        const retrieveRequestId = xmlData.getElementsByTagName('id')[0].childNodes[0].nodeValue;
+                        const status = xmlData.getElementsByTagName('state')[0].childNodes[0].nodeValue;
+                        if (status && retrieveRequestId) {
+                            let checkIntervalRequest = setInterval(() => {
+
+                                checkRetrieveStatus({ requestId: retrieveRequestId })
+                                    .then((xmlData) => {
+                                        const zipXML = new DOMParser().parseFromString(xmlData, 'text/xml');
+                                        const state = zipXML.getElementsByTagName('done')[0].childNodes[0].nodeValue;
+                                        if (state === 'true') {
+                                            const zipContent = zipXML.getElementsByTagName('zipFile')[0].childNodes[0].nodeValue;
+                                            clearInterval(checkIntervalRequest);
+                                            jsZipComponent.zipContent = zipContent;
+                                            jsZipComponent.profileName = fieldValue.value;
+                                            jsZipComponent.initializeJSZIP();
+                                            this.showContent(jsZipComponent.getProfileContent());
+
+                                        }
+
+                                    })
+                                    .catch((error) => {
+                                        console.log(error)
+                                    })
+                            }, 2000);
+                        }
+                    }
+                    console.log(data);
+                })
+                .catch((error) => {
+                    console.log(error);
+                })
+        }
+    }
     handleUploadFinished(event) {
 
         let file = event.target.files;
@@ -87,8 +160,12 @@ export default class EditProfilePermissionCmp extends LightningElement {
     showContent(reader) {
         //this.template.querySelector("[data-id='objects']").disabled = false;
         this.template.querySelector("[data-id='taborobjects']").disabled = false;
-        this.permissionFileContent = reader.result;
+        this.permissionFileContent = reader;//reader.result;
     }
+    /**
+     * 
+     * @param {event} evt 
+     */
     fetchObjMetadata(evt) {
         let element = evt.currentTarget;
         let tabOrObjectDom = this.template.querySelector("[data-id='taborobjects']");
@@ -138,11 +215,11 @@ export default class EditProfilePermissionCmp extends LightningElement {
                 });
                 if (childTabComponent) {
                     childTabComponent.tabName = _tabName;
-                    childTabComponent.tabAccess = (givenTabAccess.length > 0) ? [...givenTabAccess[0].childNodes].filter((node) => { return (node.nodeName === 'visibility'); })[0].innerHTML : 'none';
+                    childTabComponent.tabAccess = (givenTabAccess.length > 0) ? [...givenTabAccess[0].childNodes].filter((node) => { return (node.nodeName === 'visibility'); })[0].innerHTML : 'Hidden';
                 }
             } else if (childTabComponent) {
                 childTabComponent.tabName = _tabName;
-                childTabComponent.tabAccess = 'none';
+                childTabComponent.tabAccess = 'Hidden';
             }
         }
     }
@@ -162,14 +239,6 @@ export default class EditProfilePermissionCmp extends LightningElement {
     }
     compareXMLandCreateTable() {
         if (this.currentObjectInfos && this.permissionFileContent) {
-            //do all work here 
-            /*let text, parser, xmlDoc, fieldMap;
-            text = this.permissionFileContent;
-            parser = new DOMParser();
-            xmlDoc = (!this.existingXMLDoc) ? parser.parseFromString(text, 'text/xml') : this.existingXMLDoc;
-            if (!this.existingXMLDoc) {
-                this.existingXMLDoc = xmlDoc;
-            }*/
             let xmlDoc = this.parseDocument();
             let fieldMap = new Map();
             this.currentObjectInfos.fields.forEach((field) => {

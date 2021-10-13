@@ -8,7 +8,7 @@ public with sharing class ProfilePermissionHTTPHandler {
         this.body = body;
     }
 
-    public HttpResponse callEndpoint(String actionType){
+    public HttpResponse callEndpoint(String actionType, Boolean isSOAPCall){
         Http http = new Http();
         HttpRequest request = new HttpRequest();
         if(headers != null){
@@ -18,7 +18,9 @@ public with sharing class ProfilePermissionHTTPHandler {
         }
         request.setEndpoint(endpoint);
         request.setMethod(actionType);
-        request.setHeader('Authorization', 'Bearer '+ getAuthorization());
+        if(!isSOAPCall){
+            request.setHeader('Authorization', 'Bearer '+ getAuthorization());
+        }
         if(!String.isBlank(body)){
             request.setBody(body);
         }
