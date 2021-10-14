@@ -7,7 +7,7 @@ import getProfilePermissionXML from '@salesforce/apex/EditProfilePermissionContr
 import checkRetrieveStatus from '@salesforce/apex/EditProfilePermissionController.checkRetrieveStatus'
 import jsZIp from '@salesforce/resourceUrl/jszip';
 import { loadScript } from 'lightning/platformResourceLoader';
-import { getFileContent, createBlobData, showToastMessage } from './handleFileData'
+import { getFileContent, createBlobData, showToastMessage, createDupObjectAccessTag } from './handleFileData'
 
 export default class EditProfilePermissionCmp extends LightningElement {
     tabOrObjPicklists = [{ label: 'Tab', value: 'tab' }, { label: 'Custom/Standard Object', value: 'object' }];
@@ -397,8 +397,8 @@ export default class EditProfilePermissionCmp extends LightningElement {
         } else {
             //append new node in XML tree
             let objNodeList = [...xmlTree.getElementsByTagName('objectPermissions')];
-            let newObjAccessNode = objNodeList[0].cloneNode(true);
-            if (newObjAccessNode) {
+            let newObjAccessNode = createDupObjectAccessTag(xmlTree, evt.detail);
+            /*if (newObjAccessNode) {
                 newObjAccessNode.childNodes.forEach((node, index) => {
                     if (node.nodeName === 'object') {
                         newObjAccessNode.childNodes[index].innerHTML = this.objectSelected;
@@ -410,8 +410,12 @@ export default class EditProfilePermissionCmp extends LightningElement {
                     }
                 });
 
+            }*/
+            if( objNodeList[0]){
+                xmlTree.documentElement.insertBefore(newObjAccessNode, objNodeList[0]);
+            }else{
+                xmlTree.documentElement.appendChild(newObjAccessNode);
             }
-            xmlTree.documentElement.insertBefore(newObjAccessNode, objNodeList[0]);
         }
         this.existingXMLDoc = xmlTree;
 
@@ -475,7 +479,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
         this.existingXMLDoc = xmlTree;
     }
     downloadFile(evt) {
-        if (this.fileName) {
+        if (this.existingXMLDoc) {
             let fileText = new XMLSerializer().serializeToString(this.existingXMLDoc.documentElement);
             var element = document.createElement('a');
             element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(fileText));
