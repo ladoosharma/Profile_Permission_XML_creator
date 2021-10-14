@@ -1,8 +1,11 @@
 <!-- sldsValidatorIgnore -->
 <!-- sldsValidatorIgnore -->
 <template>
-    <div class="slds-form">
+    <div class="slds-form" style="position: relative;
+    background-color: #6a9fee;
+    height: 1000px;">
         <c-load-j-szip-component></c-load-j-szip-component>
+        
         <div class="slds-form-element slds-form-element_horizontal">
             <label class="slds-form-element__label" for="horizontal-input-id-01">Choose Profile/Permission</label>
             <!--<div class="slds-form-element__control">
@@ -20,7 +23,7 @@
             <label class="slds-form-element__label" for="horizontal-input-id-02">Tab/Objects</label>
             <lightning-combobox data-id="taborobjects" name="taborobjects" options={tabOrObjPicklists} disabled="true"
                 onchange={tabOrObjects}></lightning-combobox>
-
+                <br><br>
             <label class="slds-form-element__label" for="horizontal-input-id-02">Objects/Tab Name</label>
             <lightning-combobox data-id="objects" name="objects" options={allObjOptions} disabled="true"
                 onchange={fetchObjMetadata}></lightning-combobox>
@@ -38,6 +41,6 @@
                         <c-edit-tab-level-access-cmp ontabaccesschange={handleTabVisibility}></c-edit-tab-level-access-cmp>
                     </div>
         </fieldset>
-
+        <lightning-spinner alternative-text="Loading" variant="inverse" class="slds-hide"></lightning-spinner>
     </div>
 </template>

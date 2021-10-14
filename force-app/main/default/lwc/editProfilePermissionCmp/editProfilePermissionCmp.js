@@ -5,9 +5,33 @@ import getAllTabs from '@salesforce/apex/EditProfilePermissionController.getAllT
 import getAllProfilePermission from '@salesforce/apex/EditProfilePermissionController.getAllProfilePermission'
 import getProfilePermissionXML from '@salesforce/apex/EditProfilePermissionController.getProfilePermissionXML'
 import checkRetrieveStatus from '@salesforce/apex/EditProfilePermissionController.checkRetrieveStatus'
+import jsZIp from '@salesforce/resourceUrl/jszip';
+import { loadScript } from 'lightning/platformResourceLoader';
+import { getFileContent, createBlobData, showToastMessage } from './handleFileData'
 
 export default class EditProfilePermissionCmp extends LightningElement {
     tabOrObjPicklists = [{ label: 'Tab', value: 'tab' }, { label: 'Custom/Standard Object', value: 'object' }];
+    renderedCallback() {
+        if (this.jsZipInitialized) {
+            return;
+        }
+
+        Promise.all([
+            loadScript(this, jsZIp)
+        ])
+            .then(() => {
+                this.jsZipInitialized = true;
+            })
+            .catch(error => {
+                this.dispatchEvent(
+                    new ShowToastEvent({
+                        title: 'Error loading JS zip',
+                        message: error.message,
+                        variant: 'error'
+                    })
+                );
+            });
+    }
     @wire(getAllObjects, {})
     allObjectApiList({ data, error }) {
         //this.currentObjectInfos = value;
@@ -33,8 +57,6 @@ export default class EditProfilePermissionCmp extends LightningElement {
     }
     @wire(getAllProfilePermission, {})
     allProfilePermissionApiList({ data, error }) {
-        //this.currentObjectInfos = value;
-
         if (data) {
             var xmlDoc = new DOMParser().parseFromString(data, 'text/xml');
             let tempList = [...xmlDoc.getElementsByTagName('fullName')].map((node) => {
@@ -68,6 +90,11 @@ export default class EditProfilePermissionCmp extends LightningElement {
             //this.handleErrorInFetchingOnj(error);
         }
     }
+    jsZipInitialized;
+    @track
+    profilePermissionSetelected;
+    @track
+    isProfile;
     @track
     profileOptionList;
     @api
@@ -101,6 +128,8 @@ export default class EditProfilePermissionCmp extends LightningElement {
     getProfilePermission(evt) {
         const fieldValue = evt.currentTarget;
         let jsZipComponent = this.template.querySelector('c-load-j-szip-component');
+        jsZipComponent.initializeJSZIP();
+        this.showHideSpinner(true)
         if (fieldValue.value && jsZipComponent) {
             getProfilePermissionXML({ apiName: fieldValue.value, typeOfMetadata: 'Profile' })
                 .then((data) => {
@@ -109,27 +138,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
                         const retrieveRequestId = xmlData.getElementsByTagName('id')[0].childNodes[0].nodeValue;
                         const status = xmlData.getElementsByTagName('state')[0].childNodes[0].nodeValue;
                         if (status && retrieveRequestId) {
-                            let checkIntervalRequest = setInterval(() => {
-
-                                checkRetrieveStatus({ requestId: retrieveRequestId })
-                                    .then((xmlData) => {
-                                        const zipXML = new DOMParser().parseFromString(xmlData, 'text/xml');
-                                        const state = zipXML.getElementsByTagName('done')[0].childNodes[0].nodeValue;
-                                        if (state === 'true') {
-                                            const zipContent = zipXML.getElementsByTagName('zipFile')[0].childNodes[0].nodeValue;
-                                            clearInterval(checkIntervalRequest);
-                                            jsZipComponent.zipContent = zipContent;
-                                            jsZipComponent.profileName = fieldValue.value;
-                                            jsZipComponent.initializeJSZIP();
-                                            this.showContent(jsZipComponent.getProfileContent());
-
-                                        }
-
-                                    })
-                                    .catch((error) => {
-                                        console.log(error)
-                                    })
-                            }, 2000);
+                            this.retrieveRequestHandler(retrieveRequestId, fieldValue);
                         }
                     }
                     console.log(data);
@@ -138,6 +147,41 @@ export default class EditProfilePermissionCmp extends LightningElement {
                     console.log(error);
                 })
         }
+    }
+    retrieveRequestHandler(requestId, fieldValue) {
+        let requestCheck = 0;
+        let checkIntervalRequest = setInterval(() => {
+            checkRetrieveStatus({ requestId: requestId })
+                .then((xmlData) => {
+                    const zipXML = new DOMParser().parseFromString(xmlData, 'text/xml');
+                    const state = zipXML.getElementsByTagName('done')[0].childNodes[0].nodeValue;
+
+                    if (state === 'true') {
+                        const zipContent = zipXML.getElementsByTagName('zipFile')[0].childNodes[0].nodeValue;
+                        clearInterval(checkIntervalRequest);
+                        getFileContent(createBlobData(zipContent))
+                            .then((zip) => {
+                                zip.files['unpackaged/profiles/' + fieldValue.value + '.profile'].async("string").then((content) => {
+                                    this.showContent(content);
+                                    console.log(content);
+                                });
+                            }).catch((e) => {
+                                console.log(e)
+                                alert(e.message)
+                            });
+                        this.showHideSpinner(false);
+                    } else if (requestCheck === 10) {
+                        this.showHideSpinner(false);
+                        clearInterval(checkIntervalRequest);
+                        alert('There is issue with retrieving profile/permission , please try to refresh the page and try again!!!')
+                    }
+                    ++requestCheck;
+                })
+                .catch((error) => {
+                    console.log(error)
+                    alert(error.message)
+                })
+        }, 3000);
     }
     handleUploadFinished(event) {
 
@@ -172,7 +216,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
 
         if (element.name === 'objects' && tabOrObjectDom.value === 'object') {
             this.objectSelected = element.value;
-            getSelectedObjInfo({ objName: this.objectSelected })
+            getSelectedObjInfo({ objName: (this.objectSelected.endsWith('__c') || this.objectSelected.endsWith('__mdt')) ? 'Bisapp1__' + this.objectSelected : this.objectSelected })
                 .then((data) => {
                     //this.isObject = true;
                     this.currentObjectInfos = JSON.parse(data);
@@ -517,5 +561,11 @@ export default class EditProfilePermissionCmp extends LightningElement {
 
         }
     }
-
+    showHideSpinner(flag) {
+        let spinner = this.template.querySelector('lightning-spinner');
+        if (spinner) {
+            spinner.classList = [];
+            (flag) ? spinner.classList.add('slds-show') : spinner.classList.add('slds-hide');
+        }
+    }
 }

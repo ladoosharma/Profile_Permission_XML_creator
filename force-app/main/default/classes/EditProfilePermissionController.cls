@@ -71,6 +71,7 @@ public with sharing class EditProfilePermissionController {
             String allObjectstring = ProfilePermissionStaticUtils.RETRIEVE_REQUEST_ITEM.replace('{{_ELEMENT_NAME}}', 'CustomObject').replace('{{_ELEMENT_ITEM}}', '*');
             String profilePermissionString = ProfilePermissionStaticUtils.RETRIEVE_REQUEST_ITEM.replace('{{_ELEMENT_NAME}}', typeOfMetadata).replace('{{_ELEMENT_ITEM}}', apiName);
             RETRIEVE_REQUEST_BODY = RETRIEVE_REQUEST_BODY.replace('{{_REQUEST_ITEM}}', allObjectstring+profilePermissionString);
+            System.debug(RETRIEVE_REQUEST_BODY);
             Map<String, Object> headerColumn = new Map<String, Object>();
             headerColumn.put('Content-Type', 'text/xml;charset=UTF-8');
             headerColumn.put('Accept', 'text/xml');
@@ -83,7 +84,7 @@ public with sharing class EditProfilePermissionController {
             throw new AuraHandledException(e.getMessage());
         }
     }
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static String checkRetrieveStatus (String requestId){
         try {
             String RETRIEVE_REQUEST_STATUS = ProfilePermissionStaticUtils.RETRIEVE_REQUEST_STATUS.replace('{{_SESSION_ID}}', Page.SessionIDHack.getContent().toString())

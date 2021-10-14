@@ -8,8 +8,10 @@ public with sharing class ProfilePermissionStaticUtils {
                                                         '<soapenv:Body>'+
                                                             '<met:retrieve>'+
                                                                 '<met:retrieveRequest>'+
+                                                                '<met:apiVersion>52.0</met:apiVersion>'+
                                                                     '<met:unpackaged>'+
                                                                     '{{_REQUEST_ITEM}}'+
+                                                                    '<met:version>52.0</met:version>'+
                                                                     '</met:unpackaged>'+
                                                                 '</met:retrieveRequest>'+
                                                             '</met:retrieve>'+
