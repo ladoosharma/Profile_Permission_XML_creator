@@ -1,5 +1,24 @@
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-
+const dummyObjectXML = '<Profile xmlns="http://soap.sforce.com/2006/04/metadata">'+
+'<fieldPermissions>' +
+    '<editable>{{_EDITABLE}}</editable>' +
+    '<field>{{_FIELD_API_NAME}}</field>' +
+    '<readable>{{_READABLE}}</readable>' +
+    '</fieldPermissions>' +
+    '<objectPermissions>' +
+    '<allowCreate>{{_CREATE}}</allowCreate>' +
+    '<allowDelete>{{_DELETE}}</allowDelete>' +
+    '<allowEdit>{{_EDIT}}</allowEdit>' +
+    '<allowRead>{{_READ}}</allowRead>' +
+    '<modifyAllRecords>{{_MODIFY_ALL}}</modifyAllRecords>' +
+    '<object>{{_OBJECT_API_NAME}}</object>' +
+    '<viewAllRecords>{{_VIEW_ALL}}</viewAllRecords>' +
+    '</objectPermissions>' +
+    '<tabVisibilities>' +
+    '<tab>{{_TAB_API_NAME}}</tab>' +
+    '<visibility>{{_VISIBILITY}}</visibility>' +
+    '</tabVisibilities>' +
+    '</Profile>';
 const createBlobData = (base64) => {
     let binaryString = window.atob(base64);
     let binaryLen = binaryString.length;
@@ -36,43 +55,60 @@ const showToastMessage = (title, message, variant) => {
     );
 }
 const createDupTabVisibilityTag = (xmlTree, tabDetail) => {
-    let tabVisibilityElement = xmlTree.createElement('tabVisibilities');
-    let tabNameElement = xmlTree.createElement('tab');
-    tabNameElement.innerHTML = tabDetail.tabName;
-    let tabAccessElemnt = xmlTree.createElement('visibility');
-    tabAccessElemnt.innerHTML = tabDetail.tabAccess;
-    tabVisibilityElement.appendChild(tabNameElement);
-    tabVisibilityElement.appendChild(tabAccessElemnt);
-    return tabVisibilityElement;
+    let dummyXMLDOC = new DOMParser().parseFromString(dummyObjectXML, 'text/xml');
+    let tabVisibility = dummyXMLDOC.getElementsByTagName('tabVisibilities')[0];
+    if(tabVisibility){
+        tabVisibility.childNodes.forEach((node, index) => {
+            if (node.nodeName === 'tab') {
+                tabVisibility.childNodes[index].innerHTML = tabDetail.tabName;
+            }
+            else if (node.nodeName !== 'tab') {
+                tabVisibility.childNodes[index].innerHTML = tabDetail.tabAccess;
+            }
+        });
+    }
+    return tabVisibility;
 }
 const createDupObjectAccessTag = (xmlTree, objectDetail, objName) => {
-    let objectPermissions = xmlTree.createElement('objectPermissions');
-    let objectElem = xmlTree.createElement('object');
-    objectElem.innerHTML = objName;
-    let allowCreate = xmlTree.createElement('allowCreate');
-    allowCreate.innerHTML = (objectDetail.accessType === "allowCreate") ? objectDetail.checked : 'false';
-    let allowDelete = xmlTree.createElement('allowDelete');
-    allowDelete.innerHTML = (objectDetail.accessType === "allowDelete") ? objectDetail.checked : 'false';
-    let allowEdit = xmlTree.createElement('allowEdit');
-    allowEdit.innerHTML = (objectDetail.accessType ==="allowEdit") ? objectDetail.checked : 'false';
-    let allowRead = xmlTree.createElement('allowRead');
-    allowRead.innerHTML = (objectDetail.accessType ==="allowRead") ? objectDetail.checked : 'false';
-    let modifyAllRecords = xmlTree.createElement('modifyAllRecords');
-    modifyAllRecords.innerHTML = (objectDetail.accessType ==="modifyAllRecords") ?objectDetail.checked : 'false';
-    let viewAllRecords = xmlTree.createElement('viewAllRecords');
-    viewAllRecords.innerHTML = (objectDetail.accessType ==="viewAllRecords") ? objectDetail.checked : 'false';
-    objectPermissions.appendChild(objectElem);
-    objectPermissions.appendChild(allowCreate);
-    objectPermissions.appendChild(allowEdit);
-    objectPermissions.appendChild(allowDelete);
-    objectPermissions.appendChild(allowRead);
-    objectPermissions.appendChild(modifyAllRecords);
-    objectPermissions.appendChild(viewAllRecords);
-    return objectPermissions;
-
+    let dummyXMLDOC = new DOMParser().parseFromString(dummyObjectXML, 'text/xml');
+    let objectNode = dummyXMLDOC.getElementsByTagName('objectPermissions')[0];
+    if(objectNode){
+        objectNode.childNodes.forEach((node, index) => {
+            if (node.nodeName === 'object') {
+                objectNode.childNodes[index].innerHTML = objName;
+            }
+            if (objectDetail.accessType === node.nodeName) {
+                objectNode.childNodes[index].innerHTML = objectDetail.checked;
+            } else if (node.nodeName !== 'object') {
+                objectNode.childNodes[index].innerHTML = false;
+            }
+        });
+    }
+    return objectNode;
 }
 const createDupFieldAccessTag = (xmlTree) => {
     return xmlTree
 }
+const prettifyXML = (xmlDoc) => {
+    var xsltDoc = new DOMParser().parseFromString([
+        // describes how we want to modify the XML - indent everything
+        '<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform">',
+        '  <xsl:strip-space elements="*"/>',
+        '  <xsl:template match="para[content-style][not(text())]">', // change to just text() to strip space in text nodes
+        '    <xsl:value-of select="normalize-space(.)"/>',
+        '  </xsl:template>',
+        '  <xsl:template match="node()|@*">',
+        '    <xsl:copy><xsl:apply-templates select="node()|@*"/></xsl:copy>',
+        '  </xsl:template>',
+        '  <xsl:output indent="yes"/>',
+        '</xsl:stylesheet>',
+    ].join('\n'), 'application/xml');
 
-export { callFunctionOnInteval, getFileContent, createBlobData, showToastMessage, createDupTabVisibilityTag, createDupObjectAccessTag, createDupFieldAccessTag };
+    var xsltProcessor = new XSLTProcessor();
+    xsltProcessor.importStylesheet(xsltDoc);
+    var resultDoc = xsltProcessor.transformToDocument(xmlDoc);
+    var resultXml = new XMLSerializer().serializeToString(resultDoc);
+    return resultXml;
+}
+
+export { callFunctionOnInteval, getFileContent, createBlobData, showToastMessage, createDupTabVisibilityTag, createDupObjectAccessTag, createDupFieldAccessTag, prettifyXML };

@@ -7,10 +7,39 @@ import getProfilePermissionXML from '@salesforce/apex/EditProfilePermissionContr
 import checkRetrieveStatus from '@salesforce/apex/EditProfilePermissionController.checkRetrieveStatus'
 import jsZIp from '@salesforce/resourceUrl/jszip';
 import { loadScript } from 'lightning/platformResourceLoader';
-import { getFileContent, createBlobData, showToastMessage, createDupObjectAccessTag } from './handleFileData'
+import { getFileContent, createBlobData, showToastMessage, createDupObjectAccessTag, prettifyXML, createDupTabVisibilityTag } from './handleFileData'
 
 export default class EditProfilePermissionCmp extends LightningElement {
     tabOrObjPicklists = [{ label: 'Tab', value: 'tab' }, { label: 'Custom/Standard Object', value: 'object' }];
+    jsZipInitialized;
+    @track
+    profilePermissionSetelected;
+    @track
+    isProfile;
+    @track
+    profileOptionList;
+    @api
+    objectSelected = 'Account';
+    @track
+    allObjOptions;
+    @track
+    currentObjectInfos;
+    @track
+    permissionFileContent;
+    @track
+    existingObjAccessXML;
+    @track
+    existingObjFldAccessXML;
+    @track
+    existingXMLDoc;
+    @track
+    fileName;
+    @track
+    tabList;
+    @track
+    objectList;
+    @track
+    isObject;
     renderedCallback() {
         if (this.jsZipInitialized) {
             return;
@@ -90,35 +119,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
             //this.handleErrorInFetchingOnj(error);
         }
     }
-    jsZipInitialized;
-    @track
-    profilePermissionSetelected;
-    @track
-    isProfile;
-    @track
-    profileOptionList;
-    @api
-    objectSelected = 'Account';
-    @track
-    allObjOptions;
-    @track
-    currentObjectInfos;
-    @track
-    permissionFileContent;
-    @track
-    existingObjAccessXML;
-    @track
-    existingObjFldAccessXML;
-    @track
-    existingXMLDoc;
-    @track
-    fileName;
-    @track
-    tabList;
-    @track
-    objectList;
-    @track
-    isObject;
+
     handleObjectData(data) {
 
     }
@@ -202,9 +203,8 @@ export default class EditProfilePermissionCmp extends LightningElement {
 
     }
     showContent(reader) {
-        //this.template.querySelector("[data-id='objects']").disabled = false;
         this.template.querySelector("[data-id='taborobjects']").disabled = false;
-        this.permissionFileContent = reader;//reader.result;
+        this.permissionFileContent = reader;
     }
     /**
      * 
@@ -397,20 +397,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
         } else {
             //append new node in XML tree
             let objNodeList = [...xmlTree.getElementsByTagName('objectPermissions')];
-            let newObjAccessNode = createDupObjectAccessTag(xmlTree, evt.detail);
-            /*if (newObjAccessNode) {
-                newObjAccessNode.childNodes.forEach((node, index) => {
-                    if (node.nodeName === 'object') {
-                        newObjAccessNode.childNodes[index].innerHTML = this.objectSelected;
-                    }
-                    if (evt.detail.accessType === node.nodeName) {
-                        newObjAccessNode.childNodes[index].innerHTML = evt.detail.checked;
-                    } else if (node.nodeName !== 'object') {
-                        newObjAccessNode.childNodes[index].innerHTML = false;
-                    }
-                });
-
-            }*/
+            let newObjAccessNode = createDupObjectAccessTag(xmlTree, evt.detail, this.objectSelected);
             if( objNodeList[0]){
                 xmlTree.documentElement.insertBefore(newObjAccessNode, objNodeList[0]);
             }else{
@@ -480,7 +467,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
     }
     downloadFile(evt) {
         if (this.existingXMLDoc) {
-            let fileText = new XMLSerializer().serializeToString(this.existingXMLDoc.documentElement);
+            let fileText = prettifyXML(this.existingXMLDoc.documentElement);
             var element = document.createElement('a');
             element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(fileText));
             element.setAttribute('download', this.fileName);
@@ -552,14 +539,8 @@ export default class EditProfilePermissionCmp extends LightningElement {
                 xmlTree.documentElement.insertBefore(clonedAccess, existingTabVisiblities[0]);
 
             } else {
-                let tabVisibilityElement = xmlTree.createElement('tabVisibilities');
-                let tabNameElement = xmlTree.createElement('tab');
-                tabNameElement.innerHTML = evt.detail.tabName;
-                let tabAccessElemnt = xmlTree.createElement('visibility');
-                tabAccessElemnt.innerHTML = evt.detail.tabAccess;
-                tabVisibilityElement.appendChild(tabNameElement);
-                tabVisibilityElement.appendChild(tabAccessElemnt);
-                xmlTree.documentElement.insertBefore(tabVisibilityElement, xmlTree.getElementsByTagName('fieldPermissions')[0]);
+                let tabVisibilityElement = createDupTabVisibilityTag(undefined, evt.detail);
+                xmlTree.documentElement.appendChild(tabVisibilityElement);
             }
             this.existingXMLDoc = xmlTree;
 
