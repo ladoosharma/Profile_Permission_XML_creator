@@ -2,18 +2,45 @@ import { api, LightningElement, track } from 'lwc';
 
 export default class EditProfilePermissionTableCmp extends LightningElement {
 
+    /**
+     * map of field to access
+     * @type {Map}
+     */
     allFieldsMapOfObj;
+    /**
+     * List of field level XMl
+     * @type {list}
+     */
     @api
     fieldAccessXMLList;
+    /**
+     * Object XML acess link
+     * @type {List}
+     */
     @api
     objectAccessXMLList;
+    /**
+     * Selected object name
+     * @type {String}
+     */
     @api
     currentObjSelected;
+    /**
+     * @type {Boolean}
+     */
     @track
     renderTable;
+    /**
+     * List of columns to display
+     * @type {List}
+     */
     @track
     listOfFldColumn;
 
+    /**
+     * This will prepoulate the object access in the table
+     * @param {Node} objAccess 
+     */
     @api
     prePopulateObjectAccess(objAccess) {
         let tablesectionDiv = this.template.querySelector("[data-id='tableSection']");
@@ -71,15 +98,27 @@ export default class EditProfilePermissionTableCmp extends LightningElement {
         tablesectionDiv.classList.remove('slds-hide');
 
     }
+    /**
+     * This will prepoulated the field level access in the table
+     * @param {List} fieldXMLList 
+     */
     @api
     prePopulateFieldAccess(fieldXMLList) {
         this.fieldAccessXMLList = fieldXMLList;
         this.listOfFldColumn = this.recreateTableRowsOnSearch('');
     }
+    /**
+     * Setter for object Map
+     * @param {Map} data 
+     */
     @api
     setFieldMap(data) {
         this.allFieldsMapOfObj = data;
     }
+    /**
+     * This will populate the access and send the event to parnet cmp
+     * @param {Event} checkboxElem 
+     */
     mapNewPermission(checkboxElem) {
         let checkBoxDom = checkboxElem.currentTarget;
         let readChecbox = this.template.querySelector("[data-fld='" + checkBoxDom.dataset.fld + "'][data-accesstype='readable']");
@@ -113,14 +152,27 @@ export default class EditProfilePermissionTableCmp extends LightningElement {
         this.dispatchEvent(new CustomEvent('fieldaccesschange', { detail: relayDataObj }));
 
     }
+    /**
+     * Send the data of access change to parent component
+     * @param {event} checkBoxElem 
+     */
     mapObjAccess(checkBoxElem) {
         let checkBoxDom = checkBoxElem.currentTarget;
         let relayDataObj = { checked: checkBoxDom.checked, accessType: checkBoxDom.dataset.id };
         this.dispatchEvent(new CustomEvent('objaccesschange', { detail: relayDataObj }));
     }
+    /**
+     * This method will recreated the field table when we are doing search
+     * @param {Event} evt 
+     */
     searchFld(evt) {
         this.listOfFldColumn = this.recreateTableRowsOnSearch(evt.currentTarget.value);
     }
+    /**
+     * This method will recreate the field table based on search key
+     * @param {String} searchKey 
+     * @returns {List}
+     */
     recreateTableRowsOnSearch(searchKey) {
         let listOfFldColumn = [];
         let fieldXMLList = this.fieldAccessXMLList;
@@ -129,7 +181,7 @@ export default class EditProfilePermissionTableCmp extends LightningElement {
                 let tempElement = Object.assign({}, element);
                 tempElement.updateable = !tempElement.updateable;
                 key = key.toLowerCase();
-                //there i need to change all the keys to lowecase
+                //searching and sorting the array based on key
                 if (!searchKey || key.toLowerCase().startsWith(searchKey.toLowerCase())) {
                     if (fieldXMLList[key]) {
                         fieldXMLList[key] = {
