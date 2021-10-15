@@ -1,4 +1,9 @@
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+/**
+ * This will be used to generate dummy /clone tag which needs to be appended to
+ * Existing XML
+ * @type {String}
+ */
 const dummyObjectXML = '<Profile xmlns="http://soap.sforce.com/2006/04/metadata">'+
 '<fieldPermissions>' +
     '<editable>{{_EDITABLE}}</editable>' +
@@ -19,6 +24,13 @@ const dummyObjectXML = '<Profile xmlns="http://soap.sforce.com/2006/04/metadata"
     '<visibility>{{_VISIBILITY}}</visibility>' +
     '</tabVisibilities>' +
     '</Profile>';
+
+    /**
+     * This method will generate the BLOB which will be used for 
+     * creating ZIp file 
+     * @param {String} base64 encoded string
+     * @returns 
+     */
 const createBlobData = (base64) => {
     let binaryString = window.atob(base64);
     let binaryLen = binaryString.length;
@@ -34,7 +46,11 @@ const createBlobData = (base64) => {
     bb.name = "archive.zip";
     return bb;
 }
-
+/**
+ * This method crate the zip file from the blob generated from base64 string
+ * @param {Blob} blob blob object for creating zip file
+ * @returns {Promise} it returns a promise which will hav file content
+ */
 const getFileContent = (blob) => {
     let zip = new JSZip();
     return new Promise((resolve, reject) => {
@@ -45,6 +61,12 @@ const getFileContent = (blob) => {
 const callFunctionOnInteval = (interval, callbackFun) => {
 
 }
+/**
+ * This method will help generate the toast message
+ * @param {String} title title of the toast
+ * @param {String} message message to be displayed on toast
+ * @param {String} variant variant of the toast message
+ */
 const showToastMessage = (title, message, variant) => {
     this.dispatchEvent(
         new ShowToastEvent({
@@ -54,6 +76,12 @@ const showToastMessage = (title, message, variant) => {
         })
     );
 }
+/**
+ * This method will create a dummy tab access node
+ * @param {XMLDocument} xmlTree 
+ * @param {Object} tabDetail 
+ * @returns {Node}
+ */
 const createDupTabVisibilityTag = (xmlTree, tabDetail) => {
     let dummyXMLDOC = new DOMParser().parseFromString(dummyObjectXML, 'text/xml');
     let tabVisibility = dummyXMLDOC.getElementsByTagName('tabVisibilities')[0];
@@ -69,6 +97,13 @@ const createDupTabVisibilityTag = (xmlTree, tabDetail) => {
     }
     return tabVisibility;
 }
+/**
+ * This method will create a dummy object access node
+ * @param {XMLDocument} xmlTree 
+ * @param {Object} objectDetail 
+ * @param {String} objName 
+ * @returns {Node}
+ */
 const createDupObjectAccessTag = (xmlTree, objectDetail, objName) => {
     let dummyXMLDOC = new DOMParser().parseFromString(dummyObjectXML, 'text/xml');
     let objectNode = dummyXMLDOC.getElementsByTagName('objectPermissions')[0];
@@ -89,6 +124,11 @@ const createDupObjectAccessTag = (xmlTree, objectDetail, objName) => {
 const createDupFieldAccessTag = (xmlTree) => {
     return xmlTree
 }
+/**
+ * This method will pretty print the XML
+ * @param {XMLDocument} xmlDoc 
+ * @returns {String}
+ */
 const prettifyXML = (xmlDoc) => {
     var xsltDoc = new DOMParser().parseFromString([
         // describes how we want to modify the XML - indent everything
