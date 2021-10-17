@@ -11,7 +11,9 @@
 *  1.0              Gaurav Sharma      17/10/2021         Initial Creation                                                      
 *******************************************************************************************/
 public with sharing class EditProfilePermissionController {
+    //sobject endpoint of an org
     private static final string OBJ_INFO_ENDPOINT = '/services/data/v49.0/sobjects/';
+    //soap api endpoint for metadata 
     private static final String RETRIEVE_RESULT_ENDPOINT = 'services/Soap/m/50.0/';
     
     /**************************************************************************************
