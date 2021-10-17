@@ -1,4 +1,19 @@
+/*******************************************************************************************
+* @Name         ProfilePermissionStaticUtils 
+* @Author       Gaurav Sharma <gs97197@gmail.com>
+* @Date         17/10/2021
+* @Group        NA
+* @Description  This class is utility class for storing static variables
+*******************************************************************************************/
+/* MODIFICATION LOG
+* Version          Developer          Date               Description
+*-------------------------------------------------------------------------------------------
+*  1.0              Gaurav Sharma      17/10/2021         Initial Creation                                                      
+*******************************************************************************************/
 public with sharing class ProfilePermissionStaticUtils {
+    /**
+     * This string will be used for retrieval request to SOAP endpoint
+     */
     public static String RETRIEVE_REQUEST_BODY = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:met="http://soap.sforce.com/2006/04/metadata">'+
                                                     '<soapenv:Header>'+
                                                         '<met:SessionHeader>'+
@@ -17,11 +32,17 @@ public with sharing class ProfilePermissionStaticUtils {
                                                             '</met:retrieve>'+
                                                         '</soapenv:Body>'+
                                                     '</soapenv:Envelope>';
-
+    /**
+     * This string will be used for retrieval request to SOAP endpoint
+     * This will be the items which needs to be retrieved
+     */
     public static String RETRIEVE_REQUEST_ITEM ='<met:types>'+
                                                     '<met:members>{{_ELEMENT_ITEM}}</met:members>'+
                                                     '<met:name>{{_ELEMENT_NAME}}</met:name>'+
                                                 '</met:types>';
+    /**
+     * This string will be used for retrieval request status check to SOAP endpoint
+     */
     public static String RETRIEVE_REQUEST_STATUS = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:met="http://soap.sforce.com/2006/04/metadata">'+
                                                     '<soapenv:Header>'+
                                                     '<met:SessionHeader>'+
@@ -35,6 +56,9 @@ public with sharing class ProfilePermissionStaticUtils {
                                                     '</met:checkRetrieveStatus>'+
                                                     '</soapenv:Body>'+
                                                 '</soapenv:Envelope>';
+    /**
+     * This string will be used for fetching all list of metadata(Profile/Permission)
+     */
     public static String METADATA_LIST_XML_STRING = '<?xml version="1.0" encoding="utf-8"?>'+
     '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tns="http://soap.sforce.com/2006/04/metadata">'+
                                         '<soapenv:Header>'+
@@ -52,6 +76,9 @@ public with sharing class ProfilePermissionStaticUtils {
                                         '</tns:listMetadata>'+
                                         '</soapenv:Body>'+
                                         '</soapenv:Envelope>';
+    /**
+     * variable which stores body xml for fetching all list of metadata(Profile/Permission)
+     */
     public static String METADATA_LIST_PROFILE_XML_STRING = '<?xml version="1.0" encoding="utf-8"?>'+
                                                             '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tns="http://soap.sforce.com/2006/04/metadata">'+
                                                             '<soapenv:Header>'+
