@@ -59,8 +59,8 @@ public with sharing class EditProfilePermissionController {
             //instantiation handler class for REST call
             ProfilePermissionHTTPHandler handler = new ProfilePermissionHTTPHandler(URL.getSalesforceBaseUrl().toExternalForm()+OBJ_INFO_ENDPOINT+objName+'/describe',
                                                                                     null, '');
-                                                                                    
-
+            
+            
             HttpResponse response= handler.callEndpoint('GET', false);
             //returning response
             return response.getBody();
@@ -159,7 +159,7 @@ public with sharing class EditProfilePermissionController {
         try {
             //generation soap action body
             String RETRIEVE_REQUEST_STATUS = ProfilePermissionStaticUtils.RETRIEVE_REQUEST_STATUS.replace('{{_SESSION_ID}}', Page.SessionIDHack.getContent().toString())
-                                                .replace('{{_PROCESS_ID}}', requestId);
+                .replace('{{_PROCESS_ID}}', requestId);
             Map<String, Object> headerColumn = new Map<String, Object>();
             headerColumn.put('Content-Type', 'text/xml;charset=UTF-8');
             headerColumn.put('Accept', 'text/xml');

@@ -7,7 +7,7 @@ import getProfilePermissionXML from '@salesforce/apex/EditProfilePermissionContr
 import checkRetrieveStatus from '@salesforce/apex/EditProfilePermissionController.checkRetrieveStatus'
 import jsZIp from '@salesforce/resourceUrl/jszip';
 import { loadScript } from 'lightning/platformResourceLoader';
-import { getFileContent, createBlobData, showToastMessage, createDupObjectAccessTag, prettifyXML, createDupTabVisibilityTag } from './handleFileData'
+import { getFileContent, createBlobData, showToastMessage, createDupObjectAccessTag, prettifyXML, createDupTabVisibilityTag, compareAllObjectAndAddAcessXML } from './handleFileData'
 
 export default class EditProfilePermissionCmp extends LightningElement {
     tabOrObjPicklists = [{ label: 'Tab', value: 'tab' }, { label: 'Custom/Standard Object', value: 'object' }];
@@ -334,6 +334,10 @@ export default class EditProfilePermissionCmp extends LightningElement {
     showContent(reader) {
         this.template.querySelector("[data-id='taborobjects']").disabled = false;
         this.permissionFileContent = reader;
+        this.appendAccessXMlForRemainingObjTab();
+    }
+    appendAccessXMlForRemainingObjTab(){
+        let objectNewAccess = compareAllObjectAndAddAcessXML(this.objectList.map((eachObj)=>{ return eachObj.value}), this.parseDocument());
     }
     /**
      * This method will call apex class and fetch the object metadata info

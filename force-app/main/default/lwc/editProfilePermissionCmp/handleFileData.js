@@ -150,5 +150,68 @@ const prettifyXML = (xmlDoc) => {
     var resultXml = new XMLSerializer().serializeToString(resultDoc);
     return resultXml;
 }
-
-export { callFunctionOnInteval, getFileContent, createBlobData, showToastMessage, createDupTabVisibilityTag, createDupObjectAccessTag, createDupFieldAccessTag, prettifyXML };
+/**
+ * This method will compare each Custom Object in org and append access xml To parent node
+ * so that when deployed to other org it will have correct acess present
+ * @param {List} listOfObjects - Objects whose access needs to be compared
+ * @param {XMLDocument} profileXML - XML document of XMl where we need to compare
+ * @returns {List}  
+ */
+const compareAllObjectAndAddAcessXML = (listOfObjects , profileXML)=>{
+    let listOfNodesTobeAdded = [];
+    let objectTags = profileXML.getElementsByTagName('objectPermissions');
+    let dummyXMLNodes = new DOMParser().parseFromString(dummyObjectXML, 'text/xml');
+    if(objectTags){
+        let tempList = [...listOfObjects].filter((data)=>{
+            let elementFound = [...objectTags].find((obj)=>{
+                if(obj.childNodes){
+                    let objNamePresent = [...obj.childNodes].find((child)=>{
+                        if(child.nodeName === 'object' && child.innerHTML.toLowerCase() === data.toLowerCase()){
+                            return true;
+                        }
+                    });
+                    if(objNamePresent){
+                        return true;
+                    }
+                }
+            });
+            if(!elementFound){
+                return true;
+            }
+        });
+        return tempList.map((noAccessObj)=>{
+            let tempCloned = dummyXMLNodes.getElementsByTagName('objectPermissions')[0].cloneNode(true);
+            [...tempCloned.childNodes].forEach((clone)=>{
+                if(clone.nodeName !== 'object'){
+                    clone.innerHTML = false;
+                }else{
+                    clone.innerHTML = noAccessObj;
+                }
+            });
+            return tempCloned
+        });
+    }
+}
+/**
+ * This method will compare each Custom field per object in org and append access xml To parent node
+ * so that when deployed to other org it will have correct acess present
+ * @param {List} listOfAllFields - List of fields whose access needs to be compared
+ * @param {XMLDocument} profileXML - XML document of XMl where we need to compare
+ * @returns {List}  
+ */
+const compareAllFieldAndAddAcessXML = (listOfAllFields, profileXML) =>{
+    let listOfNodesTobeAdded = [];
+    return listOfNodesTobeAdded;
+}
+/**
+ * This method will compare each Tabs in org and append access xml To parent node
+ * so that when deployed to other org it will have correct acess present
+ * @param {List} listOfAllTab - List of tabs whose access needs to be compared
+ * @param {XMLDocument} profileXML - XML document of XMl where we need to compare
+ * @returns {List}  
+ */
+const compareAllTabAndAddAcessXML = (listOfAllTab, profileXML) =>{
+    let listOfNodesTobeAdded = [];
+    return listOfNodesTobeAdded;
+}
+export { compareAllObjectAndAddAcessXML, compareAllTabAndAddAcessXML, callFunctionOnInteval, getFileContent, createBlobData, showToastMessage, createDupTabVisibilityTag, createDupObjectAccessTag, createDupFieldAccessTag, prettifyXML };
