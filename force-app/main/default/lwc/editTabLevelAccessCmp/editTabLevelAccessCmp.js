@@ -29,4 +29,9 @@ export default class EditTabLevelAccessCmp extends LightningElement {
     relayDataToParent(evt) {
         this.dispatchEvent(new CustomEvent('tabaccesschange', { detail: { tabName: this.tabName, tabAccess: evt.currentTarget.value } }));
     }
+    renderedCallback(){
+        if(this.tabAccess){
+            this.template.querySelector('lightning-combobox').value = this.tabAccess;
+        }
+    }
 }

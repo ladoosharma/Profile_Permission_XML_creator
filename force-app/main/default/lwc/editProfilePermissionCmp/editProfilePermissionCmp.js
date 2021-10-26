@@ -7,7 +7,7 @@ import getProfilePermissionXML from '@salesforce/apex/EditProfilePermissionContr
 import checkRetrieveStatus from '@salesforce/apex/EditProfilePermissionController.checkRetrieveStatus'
 import jsZIp from '@salesforce/resourceUrl/jszip';
 import { loadScript } from 'lightning/platformResourceLoader';
-import { getFileContent, createBlobData, showToastMessage, createDupObjectAccessTag, prettifyXML, createDupTabVisibilityTag, compareAllObjectAndAddAcessXML } from './handleFileData'
+import { getFileContent, createBlobData, showToastMessage, compareAllTabAndAddAcessXML, createDupObjectAccessTag, prettifyXML, createDupTabVisibilityTag, compareAllObjectAndAddAcessXML } from './handleFileData'
 
 export default class EditProfilePermissionCmp extends LightningElement {
     tabOrObjPicklists = [{ label: 'Tab', value: 'tab' }, { label: 'Custom/Standard Object', value: 'object' }];
@@ -162,10 +162,12 @@ export default class EditProfilePermissionCmp extends LightningElement {
         if (data) {
             //parsing document
             var xmlDoc = new DOMParser().parseFromString(data, 'text/xml');
-            let tempList = [...xmlDoc.getElementsByTagName('fullName')].map((node) => {
+            let tempList = [...xmlDoc.getElementsByTagName('result')].map((node) => {
                 if (node) {
-                    if (node.childNodes) {
-                        return { value: node.childNodes[0].nodeValue, label: node.childNodes[0].nodeValue };
+                    const profileName = [...node.getElementsByTagName('fullName')][0];
+                    const type = [...node.getElementsByTagName('type')][0];
+                    if (profileName && type) {
+                        return { value: profileName.innerHTML, label: profileName.innerHTML + '-' + type.innerHTML, type: type.innerHTML };
                     }
                 }
             });
@@ -216,12 +218,17 @@ export default class EditProfilePermissionCmp extends LightningElement {
     getProfilePermission(evt) {
         const fieldValue = evt.currentTarget;
         this.showHideSpinner(true)
+        const typeObj = this.profileOptionList.find((data)=>{
+            if(data.name === fieldValue.value){
+                return true;
+            }
+        })
         if (fieldValue.value && this.jsZipInitialized) {
             /**
              * Calling apex method and passing Profile/Permission
              * name and type of metadata as parameter
              */
-            getProfilePermissionXML({ apiName: fieldValue.value, typeOfMetadata: 'Profile' })
+            getProfilePermissionXML({ apiName: fieldValue.value, typeOfMetadata: typeObj.type })
                 .then((data) => {
                     //parsing the XML response from apex
                     let xmlData = new DOMParser().parseFromString(data, 'text/xml');
@@ -288,7 +295,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
                                 console.log(e)
                                 alert(e.message)
                             });
-                            //hiding spinner
+                        //hiding spinner
                         this.showHideSpinner(false);
                     } else if (requestCheck === 10) {
                         //if after 30 sec the request is incomplete the closing the setinterval loop
@@ -335,9 +342,16 @@ export default class EditProfilePermissionCmp extends LightningElement {
         this.template.querySelector("[data-id='taborobjects']").disabled = false;
         this.permissionFileContent = reader;
         this.appendAccessXMlForRemainingObjTab();
+        let addedTabAccess = compareAllTabAndAddAcessXML(this.tabList.map((eachObj) => { return eachObj.value }), this.parseDocument());
+        addedTabAccess.forEach((objAccess) => {
+            this.existingXMLDoc.documentElement.appendChild(objAccess);
+        });
     }
-    appendAccessXMlForRemainingObjTab(){
-        let objectNewAccess = compareAllObjectAndAddAcessXML(this.objectList.map((eachObj)=>{ return eachObj.value}), this.parseDocument());
+    appendAccessXMlForRemainingObjTab() {
+        let objectNewAccess = compareAllObjectAndAddAcessXML(this.objectList.map((eachObj) => { return eachObj.value }), this.parseDocument());
+        objectNewAccess.forEach((objAccess) => {
+            this.existingXMLDoc.documentElement.appendChild(objAccess);
+        });
     }
     /**
      * This method will call apex class and fetch the object metadata info
@@ -492,7 +506,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
                     fieldAPIName = field.innerHTML.split(this.objectSelected + '.')[1];
                     fieldAPIName = fieldAPIName.toLowerCase();
                     fieldPermissionMap[fieldAPIName] = {};
-                    
+
                     [...eachFldNode.childNodes].forEach((node) => {
                         if (node.nodeName !== 'field' && node.nodeName !== '#text') {
                             fieldPermissionMap[fieldAPIName][node.nodeName] = node.innerHTML;
@@ -558,9 +572,9 @@ export default class EditProfilePermissionCmp extends LightningElement {
             //append new node in XML tree
             let objNodeList = [...xmlTree.getElementsByTagName('objectPermissions')];
             let newObjAccessNode = createDupObjectAccessTag(xmlTree, evt.detail, this.objectSelected);
-            if( objNodeList[0]){
+            if (objNodeList[0]) {
                 xmlTree.documentElement.insertBefore(newObjAccessNode, objNodeList[0]);
-            }else{
+            } else {
                 xmlTree.documentElement.appendChild(newObjAccessNode);
             }
         }
@@ -694,14 +708,14 @@ export default class EditProfilePermissionCmp extends LightningElement {
             if (changedTabVisibilty.length > 0) {
                 [...xmlTree.getElementsByTagName('tabVisibilities')].forEach((node, index) => {
                     if (node.childNodes) {
-                        let tabAccess = [...node.childNodes].filter((child) => {
+                        let tabAccess = [...node.childNodes].find((child) => {
                             if (child.nodeName === 'tab' && child.innerHTML.toLowerCase() === evt.detail.tabName.toLocaleLowerCase()) {
                                 return true;
                             }
                         });
                         if (tabAccess) {
                             [...[...xmlTree.getElementsByTagName('tabVisibilities')][index].childNodes].forEach((child, indexVar) => {
-                                if (child.nodeName === 'visibilty') {
+                                if (child.nodeName === 'visibility') {
                                     [...[...xmlTree.getElementsByTagName('tabVisibilities')][index].childNodes][indexVar].innerHTML = evt.detail.tabAccess;
                                 }
                             });

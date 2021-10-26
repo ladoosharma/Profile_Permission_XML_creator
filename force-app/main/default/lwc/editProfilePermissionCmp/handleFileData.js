@@ -4,8 +4,8 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
  * Existing XML
  * @type {String}
  */
-const dummyObjectXML = '<Profile xmlns="http://soap.sforce.com/2006/04/metadata">'+
-'<fieldPermissions>' +
+const dummyObjectXML = '<Profile xmlns="http://soap.sforce.com/2006/04/metadata">' +
+    '<fieldPermissions>' +
     '<editable>{{_EDITABLE}}</editable>' +
     '<field>{{_FIELD_API_NAME}}</field>' +
     '<readable>{{_READABLE}}</readable>' +
@@ -25,12 +25,12 @@ const dummyObjectXML = '<Profile xmlns="http://soap.sforce.com/2006/04/metadata"
     '</tabVisibilities>' +
     '</Profile>';
 
-    /**
-     * This method will generate the BLOB which will be used for 
-     * creating ZIp file 
-     * @param {String} base64 encoded string
-     * @returns 
-     */
+/**
+ * This method will generate the BLOB which will be used for 
+ * creating ZIp file 
+ * @param {String} base64 encoded string
+ * @returns 
+ */
 const createBlobData = (base64) => {
     let binaryString = window.atob(base64);
     let binaryLen = binaryString.length;
@@ -85,7 +85,7 @@ const showToastMessage = (title, message, variant) => {
 const createDupTabVisibilityTag = (xmlTree, tabDetail) => {
     let dummyXMLDOC = new DOMParser().parseFromString(dummyObjectXML, 'text/xml');
     let tabVisibility = dummyXMLDOC.getElementsByTagName('tabVisibilities')[0];
-    if(tabVisibility){
+    if (tabVisibility) {
         tabVisibility.childNodes.forEach((node, index) => {
             if (node.nodeName === 'tab') {
                 tabVisibility.childNodes[index].innerHTML = tabDetail.tabName;
@@ -107,7 +107,7 @@ const createDupTabVisibilityTag = (xmlTree, tabDetail) => {
 const createDupObjectAccessTag = (xmlTree, objectDetail, objName) => {
     let dummyXMLDOC = new DOMParser().parseFromString(dummyObjectXML, 'text/xml');
     let objectNode = dummyXMLDOC.getElementsByTagName('objectPermissions')[0];
-    if(objectNode){
+    if (objectNode) {
         objectNode.childNodes.forEach((node, index) => {
             if (node.nodeName === 'object') {
                 objectNode.childNodes[index].innerHTML = objName;
@@ -157,34 +157,34 @@ const prettifyXML = (xmlDoc) => {
  * @param {XMLDocument} profileXML - XML document of XMl where we need to compare
  * @returns {List}  
  */
-const compareAllObjectAndAddAcessXML = (listOfObjects , profileXML)=>{
+const compareAllObjectAndAddAcessXML = (listOfObjects, profileXML) => {
     let listOfNodesTobeAdded = [];
     let objectTags = profileXML.getElementsByTagName('objectPermissions');
     let dummyXMLNodes = new DOMParser().parseFromString(dummyObjectXML, 'text/xml');
-    if(objectTags){
-        let tempList = [...listOfObjects].filter((data)=>{
-            let elementFound = [...objectTags].find((obj)=>{
-                if(obj.childNodes){
-                    let objNamePresent = [...obj.childNodes].find((child)=>{
-                        if(child.nodeName === 'object' && child.innerHTML.toLowerCase() === data.toLowerCase()){
+    if (objectTags) {
+        let tempList = [...listOfObjects].filter((data) => {
+            let elementFound = [...objectTags].find((obj) => {
+                if (obj.childNodes) {
+                    let objNamePresent = [...obj.childNodes].find((child) => {
+                        if (child.nodeName === 'object' && child.innerHTML.toLowerCase() === data.toLowerCase()) {
                             return true;
                         }
                     });
-                    if(objNamePresent){
+                    if (objNamePresent) {
                         return true;
                     }
                 }
             });
-            if(!elementFound){
+            if (!elementFound) {
                 return true;
             }
         });
-        return tempList.map((noAccessObj)=>{
+        return tempList.map((noAccessObj) => {
             let tempCloned = dummyXMLNodes.getElementsByTagName('objectPermissions')[0].cloneNode(true);
-            [...tempCloned.childNodes].forEach((clone)=>{
-                if(clone.nodeName !== 'object'){
+            [...tempCloned.childNodes].forEach((clone) => {
+                if (clone.nodeName !== 'object') {
                     clone.innerHTML = false;
-                }else{
+                } else {
                     clone.innerHTML = noAccessObj;
                 }
             });
@@ -199,9 +199,8 @@ const compareAllObjectAndAddAcessXML = (listOfObjects , profileXML)=>{
  * @param {XMLDocument} profileXML - XML document of XMl where we need to compare
  * @returns {List}  
  */
-const compareAllFieldAndAddAcessXML = (listOfAllFields, profileXML) =>{
+const compareAllFieldAndAddAcessXML = (listOfAllFields, profileXML) => {
     let listOfNodesTobeAdded = [];
-    return listOfNodesTobeAdded;
 }
 /**
  * This method will compare each Tabs in org and append access xml To parent node
@@ -210,8 +209,38 @@ const compareAllFieldAndAddAcessXML = (listOfAllFields, profileXML) =>{
  * @param {XMLDocument} profileXML - XML document of XMl where we need to compare
  * @returns {List}  
  */
-const compareAllTabAndAddAcessXML = (listOfAllTab, profileXML) =>{
-    let listOfNodesTobeAdded = [];
-    return listOfNodesTobeAdded;
+const compareAllTabAndAddAcessXML = (listOfAllTab, profileXML) => {
+    let tabTags = profileXML.getElementsByTagName('tabVisibilities');
+    let dummyXMLNodes = new DOMParser().parseFromString(dummyObjectXML, 'text/xml');
+    if (tabTags) {
+        let tempList = [...listOfAllTab].filter((data) => {
+            let elementFound = [...tabTags].find((obj) => {
+                if (obj.childNodes) {
+                    let objNamePresent = [...obj.childNodes].find((child) => {
+                        if (child.nodeName === 'tab' && child.innerHTML.toLowerCase() === data.toLowerCase()) {
+                            return true;
+                        }
+                    });
+                    if (objNamePresent) {
+                        return true;
+                    }
+                }
+            });
+            if (!elementFound) {
+                return true;
+            }
+        });
+        return tempList.map((noAccessObj) => {
+            let tempCloned = dummyXMLNodes.getElementsByTagName('tabVisibilities')[0].cloneNode(true);
+            [...tempCloned.childNodes].forEach((clone) => {
+                if (clone.nodeName !== 'tab') {
+                    clone.innerHTML = 'DefaultOff';
+                } else {
+                    clone.innerHTML = noAccessObj;
+                }
+            });
+            return tempCloned
+        });
+    }
 }
 export { compareAllObjectAndAddAcessXML, compareAllTabAndAddAcessXML, callFunctionOnInteval, getFileContent, createBlobData, showToastMessage, createDupTabVisibilityTag, createDupObjectAccessTag, createDupFieldAccessTag, prettifyXML };
