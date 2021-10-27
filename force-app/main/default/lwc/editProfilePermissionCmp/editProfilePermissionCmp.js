@@ -10,6 +10,12 @@ import { loadScript } from 'lightning/platformResourceLoader';
 import { getFileContent, createBlobData, showToastMessage, compareAllTabAndAddAcessXML, createDupObjectAccessTag, prettifyXML, createDupTabVisibilityTag, compareAllObjectAndAddAcessXML } from './handleFileData'
 
 export default class EditProfilePermissionCmp extends LightningElement {
+    /**
+     * @type {String}
+     * type of metadata selected , either permission or profile
+     */
+    @track
+    metadataType= 'Profile';
     tabOrObjPicklists = [{ label: 'Tab', value: 'tab' }, { label: 'Custom/Standard Object', value: 'object' }];
     /**
      * boolean variable for tracking jsZIp instantiation
@@ -219,10 +225,11 @@ export default class EditProfilePermissionCmp extends LightningElement {
         const fieldValue = evt.currentTarget;
         this.showHideSpinner(true)
         const typeObj = this.profileOptionList.find((data)=>{
-            if(data.name === fieldValue.value){
+            if(data.value === fieldValue.value){
                 return true;
             }
         })
+        this.metadataType = (typeObj)?typeObj.type:'';
         if (fieldValue.value && this.jsZipInitialized) {
             /**
              * Calling apex method and passing Profile/Permission
@@ -271,7 +278,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
                 .then((xmlData) => {
                     //parsing the response
                     const zipXML = new DOMParser().parseFromString(xmlData, 'text/xml');
-                    const state = zipXML.getElementsByTagName('done')[0].childNodes[0].nodeValue;
+                    const state = (zipXML.getElementsByTagName('done')[0])?zipXML.getElementsByTagName('done')[0].childNodes[0].nodeValue:'';
                     //if state is true , it means the zip has been created and put in the xml
                     //<zipFile> tag
                     if (state === 'true') {
@@ -286,17 +293,19 @@ export default class EditProfilePermissionCmp extends LightningElement {
                         getFileContent(createBlobData(zipContent))
                             .then((zip) => {
                                 //handling the async promise which will return the zip content of the retrieved request
-                                zip.files['unpackaged/profiles/' + fieldValue.value + '.profile'].async("string").then((content) => {
+                                zip.files['unpackaged/'+((this.metadataType.toLowerCase() === 'profile')?'profiles':'permissionsets')+'/' + fieldValue.value + '.'+this.metadataType.toLowerCase()].async("string").then((content) => {
                                     this.showContent(content);
+                                    this.showHideSpinner(false);
+                                    this.fileName = fieldValue.value + '.'+this.metadataType.toLowerCase();
                                     console.log(content);
                                 });
                             }).catch((e) => {
                                 //showing any error
                                 console.log(e)
+                                this.showHideSpinner(false);
                                 alert(e.message)
                             });
                         //hiding spinner
-                        this.showHideSpinner(false);
                     } else if (requestCheck === 10) {
                         //if after 30 sec the request is incomplete the closing the setinterval loop
                         this.showHideSpinner(false);
@@ -342,15 +351,17 @@ export default class EditProfilePermissionCmp extends LightningElement {
         this.template.querySelector("[data-id='taborobjects']").disabled = false;
         this.permissionFileContent = reader;
         this.appendAccessXMlForRemainingObjTab();
-        let addedTabAccess = compareAllTabAndAddAcessXML(this.tabList.map((eachObj) => { return eachObj.value }), this.parseDocument());
+        let addedTabAccess = compareAllTabAndAddAcessXML(this.tabList.map((eachObj) => { return eachObj.value }), this.parseDocument(), this.metadataType);
         addedTabAccess.forEach((objAccess) => {
-            this.existingXMLDoc.documentElement.appendChild(objAccess);
+            const exitingTabIfAny = [...this.existingXMLDoc.getElementsByTagName((this.metadataType.toLowerCase() === 'profile')?'tabVisibilities':'tabSettings')][0];
+            (exitingTabIfAny)?this.existingXMLDoc.documentElement.insertBefore(objAccess, exitingTabIfAny):this.existingXMLDoc.documentElement.appendChild(objAccess);
         });
     }
     appendAccessXMlForRemainingObjTab() {
         let objectNewAccess = compareAllObjectAndAddAcessXML(this.objectList.map((eachObj) => { return eachObj.value }), this.parseDocument());
         objectNewAccess.forEach((objAccess) => {
-            this.existingXMLDoc.documentElement.appendChild(objAccess);
+            const exitingObjIfAny = [...this.existingXMLDoc.getElementsByTagName('objectPermissions')][0];
+            (exitingObjIfAny)?this.existingXMLDoc.documentElement.insertBefore(objAccess, exitingObjIfAny):this.existingXMLDoc.documentElement.appendChild(objAccess);
         });
     }
     /**
@@ -365,7 +376,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
         if (element.name === 'objects' && tabOrObjectDom.value === 'object') {
             this.objectSelected = element.value;
             //this line needs to be changed beore creating a unmangaed package
-            getSelectedObjInfo({ objName: (this.objectSelected.endsWith('__c') || this.objectSelected.endsWith('__mdt')) ? 'Bisapp1__' + this.objectSelected : this.objectSelected })
+            getSelectedObjInfo({ objName: /*(this.objectSelected.endsWith('__c') || this.objectSelected.endsWith('__mdt')) ? 'Bisapp1__' + this.objectSelected : */this.objectSelected })
                 .then((data) => {
                     //setting the object info data after parsing
                     this.currentObjectInfos = JSON.parse(data);
@@ -398,7 +409,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
         let xmlTree = this.parseDocument();
         if (xmlTree && _tabName) {
             //getting all tab visibility tag
-            let tabAccessNode = xmlTree.getElementsByTagName('tabVisibilities');
+            let tabAccessNode = xmlTree.getElementsByTagName((this.metadataType.toLowerCase() === 'profile')?'tabVisibilities':'tabSettings');
             if (tabAccessNode) {
                 //checking if the tab node is present already
                 let givenTabAccess = [...tabAccessNode].filter((node) => {
@@ -691,7 +702,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
     handleTabVisibility(evt) {
         let xmlTree = this.existingXMLDoc;
         if (xmlTree && evt.detail) {
-            let existingTabVisiblities = xmlTree.getElementsByTagName('tabVisibilities');
+            let existingTabVisiblities = xmlTree.getElementsByTagName((this.metadataType.toLowerCase() === 'profile')?'tabVisibilities':'tabSettings');
             //finding the existing tag
             let changedTabVisibilty = [...existingTabVisiblities].filter((node) => {
                 if (node.childNodes) {
@@ -706,7 +717,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
             });
             //if found then changing the access in XML
             if (changedTabVisibilty.length > 0) {
-                [...xmlTree.getElementsByTagName('tabVisibilities')].forEach((node, index) => {
+                [...xmlTree.getElementsByTagName((this.metadataType.toLowerCase() === 'profile')?'tabVisibilities':'tabSettings')].forEach((node, index) => {
                     if (node.childNodes) {
                         let tabAccess = [...node.childNodes].find((child) => {
                             if (child.nodeName === 'tab' && child.innerHTML.toLowerCase() === evt.detail.tabName.toLocaleLowerCase()) {
@@ -714,9 +725,9 @@ export default class EditProfilePermissionCmp extends LightningElement {
                             }
                         });
                         if (tabAccess) {
-                            [...[...xmlTree.getElementsByTagName('tabVisibilities')][index].childNodes].forEach((child, indexVar) => {
+                            [...[...xmlTree.getElementsByTagName((this.metadataType.toLowerCase() === 'profile')?'tabVisibilities':'tabSettings')][index].childNodes].forEach((child, indexVar) => {
                                 if (child.nodeName === 'visibility') {
-                                    [...[...xmlTree.getElementsByTagName('tabVisibilities')][index].childNodes][indexVar].innerHTML = evt.detail.tabAccess;
+                                    [...[...xmlTree.getElementsByTagName((this.metadataType.toLowerCase() === 'profile')?'tabVisibilities':'tabSettings')][index].childNodes][indexVar].innerHTML = evt.detail.tabAccess;
                                 }
                             });
                         }
@@ -737,7 +748,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
 
             } else {
                 //if tag not present in profile creating a new one and appendning 
-                let tabVisibilityElement = createDupTabVisibilityTag(undefined, evt.detail);
+                let tabVisibilityElement = createDupTabVisibilityTag(undefined, evt.detail, this.metadataType);
                 xmlTree.documentElement.appendChild(tabVisibilityElement);
             }
             this.existingXMLDoc = xmlTree;

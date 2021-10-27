@@ -23,6 +23,10 @@ const dummyObjectXML = '<Profile xmlns="http://soap.sforce.com/2006/04/metadata"
     '<tab>{{_TAB_API_NAME}}</tab>' +
     '<visibility>{{_VISIBILITY}}</visibility>' +
     '</tabVisibilities>' +
+    '<tabSettings>' +
+    '<tab>{{_TAB_API_NAME}}</tab>' +
+    '<visibility>{{_VISIBILITY}}</visibility>' +
+    '</tabSettings>' +
     '</Profile>';
 
 /**
@@ -80,11 +84,12 @@ const showToastMessage = (title, message, variant) => {
  * This method will create a dummy tab access node
  * @param {XMLDocument} xmlTree 
  * @param {Object} tabDetail 
+ * @param {String} metadataType
  * @returns {Node}
  */
-const createDupTabVisibilityTag = (xmlTree, tabDetail) => {
+const createDupTabVisibilityTag = (xmlTree, tabDetail, metadataType) => {
     let dummyXMLDOC = new DOMParser().parseFromString(dummyObjectXML, 'text/xml');
-    let tabVisibility = dummyXMLDOC.getElementsByTagName('tabVisibilities')[0];
+    let tabVisibility = dummyXMLDOC.getElementsByTagName((metadataType.toLowerCase() === 'profile')?'tabVisibilities':'tabSettings')[0];
     if (tabVisibility) {
         tabVisibility.childNodes.forEach((node, index) => {
             if (node.nodeName === 'tab') {
@@ -207,10 +212,11 @@ const compareAllFieldAndAddAcessXML = (listOfAllFields, profileXML) => {
  * so that when deployed to other org it will have correct acess present
  * @param {List} listOfAllTab - List of tabs whose access needs to be compared
  * @param {XMLDocument} profileXML - XML document of XMl where we need to compare
+ * @param {String} metadataType
  * @returns {List}  
  */
-const compareAllTabAndAddAcessXML = (listOfAllTab, profileXML) => {
-    let tabTags = profileXML.getElementsByTagName('tabVisibilities');
+const compareAllTabAndAddAcessXML = (listOfAllTab, profileXML, metadataType) => {
+    let tabTags = profileXML.getElementsByTagName((metadataType.toLowerCase() === 'profile')?'tabVisibilities':'tabSettings');
     let dummyXMLNodes = new DOMParser().parseFromString(dummyObjectXML, 'text/xml');
     if (tabTags) {
         let tempList = [...listOfAllTab].filter((data) => {
@@ -231,7 +237,7 @@ const compareAllTabAndAddAcessXML = (listOfAllTab, profileXML) => {
             }
         });
         return tempList.map((noAccessObj) => {
-            let tempCloned = dummyXMLNodes.getElementsByTagName('tabVisibilities')[0].cloneNode(true);
+            let tempCloned = dummyXMLNodes.getElementsByTagName((metadataType.toLowerCase() === 'profile')?'tabVisibilities':'tabSettings')[0].cloneNode(true);
             [...tempCloned.childNodes].forEach((clone) => {
                 if (clone.nodeName !== 'tab') {
                     clone.innerHTML = 'DefaultOff';
