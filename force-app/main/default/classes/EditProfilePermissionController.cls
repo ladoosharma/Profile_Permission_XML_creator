@@ -174,4 +174,29 @@ public with sharing class EditProfilePermissionController {
             throw new AuraHandledException(e.getMessage());
         }
     }
+    /**************************************************************************************
+    * @Description  This method will send deploy/validate request to org
+    * @Param		String zipContent- base64 encoded zip file, String deployFlag -if validation is only needed
+    * @Return       String - Request ID as a form of XML which will be parsed in javascript 
+    * @Example     
+    * EditProfilePermissionController.deployProfilePermission('blob base 64 data', true)
+    */
+    @AuraEnabled
+    public static String deployProfilePermission(String zipContent, Boolean deployFlag){
+        try {
+        String DEPLOY_REQUEST_BOSY = ProfilePermissionStaticUtils.DEPLOY_REQUEST_XML_BODY.replace('{{_SESSION_ID}}', Page.SessionIDHack.getContent().toString())
+                                .replace('{{_CHECK_ONLY}}', String.valueOf(deployFlag));
+        Map<String, Object> headerColumn = new Map<String, Object>();
+        headerColumn.put('Content-Type', 'text/xml;charset=UTF-8');
+        headerColumn.put('Accept', 'text/xml');
+        headerColumn.put('SOAPAction', '""');
+        ProfilePermissionHTTPHandler handler = new ProfilePermissionHTTPHandler(URL.getSalesforceBaseUrl().toExternalForm()+'/services/Soap/m/52.0/'+UserInfo.getOrganizationId() ,
+                                                                                    headerColumn, DEPLOY_REQUEST_BOSY);
+        HTTPResponse response = handler.callEndpoint('POST', true);
+        return response.getBody();  
+        }catch (Exception e) {
+            //throwing error
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
 }

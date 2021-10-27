@@ -29,7 +29,12 @@
                 onchange={fetchObjMetadata}></lightning-combobox>
         </div>
         <br>
-        <lightning-button label="download file" name="download" onclick={downloadFile}></lightning-button>
+        <lightning-button-group>
+            <lightning-button label="Download file" name="download" onclick={downloadFile}></lightning-button>
+            <lightning-button label="Validate with Org" name="validate" onclick={validateFile}></lightning-button>
+            <lightning-button data-id= "deploy" label="Deploy to org" name="deploy" onclick={deployMetadata} disabled></lightning-button>
+        </lightning-button-group>
+        
         <!-- sldsValidatorIgnoreNextLine -->
         <fieldset class="slds-form-element slds-form-element_horizontal">
             <div data-id="profileTable" class="slds-form-element__control" style="display:none">

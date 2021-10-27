@@ -1,4 +1,12 @@
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+const dummyPackageXML = '<?xml version="1.0" encoding="UTF-8"?>'+
+'<Package xmlns="http://soap.sforce.com/2006/04/metadata">'+
+    '<types>'+
+        '<members>{{_MEMBER}}</members>'+
+        '<name>{{_META_TYPE}}</name>'+
+    '</types>'+
+    '<version>53.0</version>'+
+'</Package>';
 /**
  * This will be used to generate dummy /clone tag which needs to be appended to
  * Existing XML
@@ -89,7 +97,7 @@ const showToastMessage = (title, message, variant) => {
  */
 const createDupTabVisibilityTag = (xmlTree, tabDetail, metadataType) => {
     let dummyXMLDOC = new DOMParser().parseFromString(dummyObjectXML, 'text/xml');
-    let tabVisibility = dummyXMLDOC.getElementsByTagName((metadataType.toLowerCase() === 'profile')?'tabVisibilities':'tabSettings')[0];
+    let tabVisibility = dummyXMLDOC.getElementsByTagName((metadataType.toLowerCase() === 'profile') ? 'tabVisibilities' : 'tabSettings')[0];
     if (tabVisibility) {
         tabVisibility.childNodes.forEach((node, index) => {
             if (node.nodeName === 'tab') {
@@ -216,7 +224,7 @@ const compareAllFieldAndAddAcessXML = (listOfAllFields, profileXML) => {
  * @returns {List}  
  */
 const compareAllTabAndAddAcessXML = (listOfAllTab, profileXML, metadataType) => {
-    let tabTags = profileXML.getElementsByTagName((metadataType.toLowerCase() === 'profile')?'tabVisibilities':'tabSettings');
+    let tabTags = profileXML.getElementsByTagName((metadataType.toLowerCase() === 'profile') ? 'tabVisibilities' : 'tabSettings');
     let dummyXMLNodes = new DOMParser().parseFromString(dummyObjectXML, 'text/xml');
     if (tabTags) {
         let tempList = [...listOfAllTab].filter((data) => {
@@ -237,7 +245,7 @@ const compareAllTabAndAddAcessXML = (listOfAllTab, profileXML, metadataType) => 
             }
         });
         return tempList.map((noAccessObj) => {
-            let tempCloned = dummyXMLNodes.getElementsByTagName((metadataType.toLowerCase() === 'profile')?'tabVisibilities':'tabSettings')[0].cloneNode(true);
+            let tempCloned = dummyXMLNodes.getElementsByTagName((metadataType.toLowerCase() === 'profile') ? 'tabVisibilities' : 'tabSettings')[0].cloneNode(true);
             [...tempCloned.childNodes].forEach((clone) => {
                 if (clone.nodeName !== 'tab') {
                     clone.innerHTML = 'DefaultOff';
@@ -249,4 +257,24 @@ const compareAllTabAndAddAcessXML = (listOfAllTab, profileXML, metadataType) => 
         });
     }
 }
-export { compareAllObjectAndAddAcessXML, compareAllTabAndAddAcessXML, callFunctionOnInteval, getFileContent, createBlobData, showToastMessage, createDupTabVisibilityTag, createDupObjectAccessTag, createDupFieldAccessTag, prettifyXML };
+/**
+ * This method will help generate the ZIP data which will be used for deployment/validation
+ * @param {String} zipData profile/Permission set data
+ * @param {String} metadataType type of metadata {profile/Permissionset}
+ * @param {String} metadataName name of metadata
+ * @returns {Promise} return a file generation promise
+ */
+const generateZipForProfile = (zipData, metadataType, metadataName) => {
+    let zip = new JSZip();
+    zip.file("package.xml", dummyPackageXML.replace('{{_MEMBER}}', metadataName).replace('{{_META_TYPE}}', metadataType));
+    var metadataFolder = zip.folder((metadataType === 'profile') ? 'profiles' : 'permissionsets');
+    metadataFolder.file(metadataName+'.' + metadataType.toUpperCase(), zipData, { base64: false });
+    return new Promise((resolve, reject) => {
+        resolve(zip.generateAsync({ type: "blob" }));
+    });
+}
+export {
+    generateZipForProfile, compareAllObjectAndAddAcessXML, compareAllTabAndAddAcessXML,
+    callFunctionOnInteval, getFileContent, createBlobData, showToastMessage,
+    createDupTabVisibilityTag, createDupObjectAccessTag, createDupFieldAccessTag, prettifyXML
+};

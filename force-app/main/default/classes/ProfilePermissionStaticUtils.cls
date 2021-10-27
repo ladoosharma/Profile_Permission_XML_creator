@@ -100,4 +100,31 @@ public with sharing class ProfilePermissionStaticUtils {
                                                             '</tns:listMetadata>'+
                                                             '</soapenv:Body>'+
                                                             '</soapenv:Envelope>';
+    /**
+     * variable which stores body xml for deploying metadata(Profile/Permission)
+     */
+    public static String DEPLOY_REQUEST_XML_BODY = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:met="http://soap.sforce.com/2006/04/metadata">'+
+    '<soapenv:Header>'+
+       '<met:SessionHeader>'+
+          '<met:sessionId>{{_SESSION_ID}}</met:sessionId>'+
+        '</met:SessionHeader>'+
+    '</soapenv:Header>'+
+    '<soapenv:Body>'+
+       '<met:deploy>'+
+          '<met:ZipFile>{{_ZIP_CONTENT}}</met:ZipFile>'+
+          '<met:DeployOptions>'+
+             '<met:allowMissingFiles></met:allowMissingFiles>'+
+             '<met:autoUpdatePackage></met:autoUpdatePackage>'+
+             '<met:checkOnly>{{_CHECK_ONLY}}</met:checkOnly>'+
+             '<met:ignoreWarnings></met:ignoreWarnings>'+
+             '<met:performRetrieve></met:performRetrieve>'+
+             '<met:purgeOnDelete></met:purgeOnDelete>'+
+             '<met:rollbackOnError></met:rollbackOnError>'+
+             '<met:runTests></met:runTests>'+
+             '<met:singlePackage></met:singlePackage>'+
+             '<met:testLevel></met:testLevel>'+
+          '</met:DeployOptions>'+
+       '</met:deploy>'+
+    '</soapenv:Body>'+
+ '</soapenv:Envelope>';
 }
