@@ -185,17 +185,42 @@ public with sharing class EditProfilePermissionController {
     public static String deployProfilePermission(String zipContent, Boolean deployFlag){
         try {
         String DEPLOY_REQUEST_BOSY = ProfilePermissionStaticUtils.DEPLOY_REQUEST_XML_BODY.replace('{{_SESSION_ID}}', Page.SessionIDHack.getContent().toString())
-                                .replace('{{_CHECK_ONLY}}', String.valueOf(deployFlag));
+                                .replace('{{_CHECK_ONLY}}', String.valueOf(deployFlag)).replace('{{_ZIP_CONTENT}}', zipContent);
         Map<String, Object> headerColumn = new Map<String, Object>();
         headerColumn.put('Content-Type', 'text/xml;charset=UTF-8');
         headerColumn.put('Accept', 'text/xml');
         headerColumn.put('SOAPAction', '""');
+        system.debug(DEPLOY_REQUEST_BOSY);
         ProfilePermissionHTTPHandler handler = new ProfilePermissionHTTPHandler(URL.getSalesforceBaseUrl().toExternalForm()+'/services/Soap/m/52.0/'+UserInfo.getOrganizationId() ,
                                                                                     headerColumn, DEPLOY_REQUEST_BOSY);
         HTTPResponse response = handler.callEndpoint('POST', true);
         return response.getBody();  
         }catch (Exception e) {
             //throwing error
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+    /**************************************************************************************
+    * @Description  This method will check deployment status
+    * @Param		String deploymentId- deployment Id of the request
+    * @Return       String - request status as a form of XML which will be parsed in javascript 
+    * @Example     
+    * EditProfilePermissionController.checkDeployStatus('salesforce 18 or 16 digit ID')
+    */
+    @AuraEnabled
+    public static string checkDeployStatus(String deploymentId){
+        try {
+            String REQUEST_BODY = ProfilePermissionStaticUtils.DEPLOY_STATUS_BODY.replace('{{_SESSION_ID}}', Page.SessionIDHack.getContent().toString())
+                                    .replace('{{_DEPLOY_ID}}', deploymentId);
+            Map<String, Object> headerColumn = new Map<String, Object>();
+            headerColumn.put('Content-Type', 'text/xml;charset=UTF-8');
+            headerColumn.put('Accept', 'text/xml');
+            headerColumn.put('SOAPAction', '""');
+            ProfilePermissionHTTPHandler handler = new ProfilePermissionHTTPHandler(URL.getSalesforceBaseUrl().toExternalForm()+'/services/Soap/m/52.0/'+UserInfo.getOrganizationId() ,
+                                                                                        headerColumn, REQUEST_BODY);
+            HTTPResponse response = handler.callEndpoint('POST', true);
+            return response.getBody();  
+        } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
     }

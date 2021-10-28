@@ -113,18 +113,31 @@ public with sharing class ProfilePermissionStaticUtils {
        '<met:deploy>'+
           '<met:ZipFile>{{_ZIP_CONTENT}}</met:ZipFile>'+
           '<met:DeployOptions>'+
-             '<met:allowMissingFiles></met:allowMissingFiles>'+
-             '<met:autoUpdatePackage></met:autoUpdatePackage>'+
+            //  '<met:allowMissingFiles></met:allowMissingFiles>'+
+            //  '<met:autoUpdatePackage></met:autoUpdatePackage>'+
              '<met:checkOnly>{{_CHECK_ONLY}}</met:checkOnly>'+
-             '<met:ignoreWarnings></met:ignoreWarnings>'+
-             '<met:performRetrieve></met:performRetrieve>'+
-             '<met:purgeOnDelete></met:purgeOnDelete>'+
-             '<met:rollbackOnError></met:rollbackOnError>'+
-             '<met:runTests></met:runTests>'+
-             '<met:singlePackage></met:singlePackage>'+
-             '<met:testLevel></met:testLevel>'+
+            //  '<met:ignoreWarnings></met:ignoreWarnings>'+
+            //  '<met:performRetrieve></met:performRetrieve>'+
+            //  '<met:purgeOnDelete></met:purgeOnDelete>'+
+            //  '<met:rollbackOnError></met:rollbackOnError>'+
+            //  '<met:runTests></met:runTests>'+
+            //  '<met:singlePackage></met:singlePackage>'+
+            //  '<met:testLevel></met:testLevel>'+
           '</met:DeployOptions>'+
        '</met:deploy>'+
     '</soapenv:Body>'+
  '</soapenv:Envelope>';
+ public static String DEPLOY_STATUS_BODY = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:met="http://soap.sforce.com/2006/04/metadata">'+
+ '<soapenv:Header>'+
+    '<met:SessionHeader>'+
+       '<met:sessionId>{{_SESSION_ID}}</met:sessionId>'+
+    '</met:SessionHeader>'+
+ '</soapenv:Header>'+
+ '<soapenv:Body>'+
+    '<met:checkDeployStatus>'+
+       '<met:asyncProcessId>{{_DEPLOY_ID}}</met:asyncProcessId>'+
+       '<met:includeDetails>true</met:includeDetails>'+
+    '</met:checkDeployStatus>'+
+ '</soapenv:Body>'+
+'</soapenv:Envelope>';
 }

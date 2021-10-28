@@ -4,15 +4,15 @@
     <div class="slds-form" style="position: relative;
     background-color: #6a9fee;
     height: 1000px;">
-       <!--<c-load-j-szip-component></c-load-j-szip-component>-->
-        
+        <!--<c-load-j-szip-component></c-load-j-szip-component>-->
+
         <div class="slds-form-element slds-form-element_horizontal">
             <label class="slds-form-element__label" for="horizontal-input-id-01">Choose Profile/Permission</label>
             <!--<div class="slds-form-element__control">
                 <input type="file" name="profilePermissionFile" onchange={handleUploadFinished}/>
             </div>-->
             <lightning-combobox name="profilePermissionPicklist" options={profileOptionList}
-                     onchange={getProfilePermission}></lightning-combobox>
+                onchange={getProfilePermission}></lightning-combobox>
         </div>
         <!--<div class="slds-form-element slds-form-element_horizontal">
             <label class="slds-form-element__label" for="horizontal-input-id-02">All PermissionSet Or Profile</label>
@@ -23,7 +23,7 @@
             <label class="slds-form-element__label" for="horizontal-input-id-02">Tab/Objects</label>
             <lightning-combobox data-id="taborobjects" name="taborobjects" options={tabOrObjPicklists} disabled="true"
                 onchange={tabOrObjects}></lightning-combobox>
-                <br><br>
+            <br><br>
             <label class="slds-form-element__label" for="horizontal-input-id-02">Objects/Tab Name</label>
             <lightning-combobox data-id="objects" name="objects" options={allObjOptions} disabled="true"
                 onchange={fetchObjMetadata}></lightning-combobox>
@@ -32,19 +32,35 @@
         <lightning-button-group>
             <lightning-button label="Download file" name="download" onclick={downloadFile}></lightning-button>
             <lightning-button label="Validate with Org" name="validate" onclick={validateFile}></lightning-button>
-            <lightning-button data-id= "deploy" label="Deploy to org" name="deploy" onclick={deployMetadata} disabled></lightning-button>
+            <lightning-button data-id="deploy" label="Deploy to org" name="deploy" onclick={deployMetadata} disabled>
+            </lightning-button>
         </lightning-button-group>
-        
+
         <!-- sldsValidatorIgnoreNextLine -->
         <fieldset class="slds-form-element slds-form-element_horizontal">
+            <div class="slds-form-element__control">
+                <!--Showing error message here as well as on which component has failed-->
+
+                <lightning-accordion allow-multiple-sections-open
+                    active-section-name={activeSections}>
+                    <lightning-accordion-section name="A" label="Successfull Component">
+                        <lightning-formatted-rich-text data-id="Success"></lightning-formatted-rich-text>
+                    </lightning-accordion-section>
+                    <lightning-accordion-section name="B" label="Failed Component">
+                        <lightning-formatted-rich-text data-id="Error"></lightning-formatted-rich-text>
+                    </lightning-accordion-section>
+                </lightning-accordion>
+            </div>
             <div data-id="profileTable" class="slds-form-element__control" style="display:none">
-                    <!--data table will go here -->
-                    <c-edit-profile-permission-table-cmp onobjaccesschange={modifyObjAccess} onfieldaccesschange={modifyFldAccess} current-obj-selected={objectSelected} ></c-edit-profile-permission-table-cmp>
-                </div>
-            <div  data-id="tabTable" class="slds-form-element__control" style="display:none">
-                        <!--data table for tab level access will go here -->
-                        <c-edit-tab-level-access-cmp ontabaccesschange={handleTabVisibility}></c-edit-tab-level-access-cmp>
-                    </div>
+                <!--data table will go here -->
+                <c-edit-profile-permission-table-cmp onobjaccesschange={modifyObjAccess}
+                    onfieldaccesschange={modifyFldAccess} current-obj-selected={objectSelected}>
+                </c-edit-profile-permission-table-cmp>
+            </div>
+            <div data-id="tabTable" class="slds-form-element__control" style="display:none">
+                <!--data table for tab level access will go here -->
+                <c-edit-tab-level-access-cmp ontabaccesschange={handleTabVisibility}></c-edit-tab-level-access-cmp>
+            </div>
         </fieldset>
         <lightning-spinner alternative-text="Loading" variant="inverse" class="slds-hide"></lightning-spinner>
     </div>

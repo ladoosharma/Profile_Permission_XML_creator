@@ -5,6 +5,7 @@ import getAllTabs from '@salesforce/apex/EditProfilePermissionController.getAllT
 import getAllProfilePermission from '@salesforce/apex/EditProfilePermissionController.getAllProfilePermission'
 import getProfilePermissionXML from '@salesforce/apex/EditProfilePermissionController.getProfilePermissionXML'
 import deployProfilePermission from '@salesforce/apex/EditProfilePermissionController.deployProfilePermission'
+import checkDeployStatus from '@salesforce/apex/EditProfilePermissionController.checkDeployStatus'
 import checkRetrieveStatus from '@salesforce/apex/EditProfilePermissionController.checkRetrieveStatus'
 import jsZIp from '@salesforce/resourceUrl/jszip';
 import { loadScript } from 'lightning/platformResourceLoader';
@@ -107,6 +108,12 @@ export default class EditProfilePermissionCmp extends LightningElement {
      */
     @track
     isObject;
+    /**
+     * getter for active sections
+     */
+    get activeSections(){
+        return ['A', 'B'];
+    }
     /**
      * This is system method which get called by lightning framework when rendering is 
      * completed
@@ -773,26 +780,92 @@ export default class EditProfilePermissionCmp extends LightningElement {
      */
     validateFile() {
         if (this.existingXMLDoc) {
-            generateZipForProfile(prettifyXML(this.existingXMLDoc), this.metadataType,
-                ([...this.template.querySelectorAll('lightning-combobox')].find((elem) => { return elem.name === 'profilePermissionPicklist' }).value))
-                .then((fileContent) => {
-                    let reader = new FileReader();
-                    reader.readAsDataURL(fileContent);
-                    reader.onloadend = () => {
-                        let base64data = reader.result;
-                        deployProfilePermission({zipContent:base64data, deployFlag:true})
-                            .then((data) => {
-                                console.log(data);
-                            })
-                            .catch((error) => {
-                                console.log(error);
-                            })
+            this.showHideSpinner(true);
+            this.genericDeployRequest(true);
+        }
+    }
+    /**
+     * This method will call apex periodically to check the status of deployment request
+     * @param {String} deploymentId this is the deployment/validation ID of which 
+     * we need to check status on 5 sec interval 
+     */
+    checkPeriodicDeployStatus(deploymentId) {
+        let counter = 0;
+        let periodicCall = setInterval(() => {
+            checkDeployStatus({ deploymentId: deploymentId })
+                .then((data) => {
+                    console.log(data)
+                    const result = [...((new DOMParser().parseFromString(data, 'text/xml')).getElementsByTagName('result'))][0];
+                    if (result) {
+                        const isDone = [...result.getElementsByTagName('done')][0];
+                        if (isDone.innerHTML === 'true') {
+                            this.showHideSpinner(false);
+                            //check for status 
+                            const status = [...result.getElementsByTagName('status')][0].innerHTML;
+                            if (status === 'Succeeded' || status === 'SucceededPartial') {
+                                //show success message
+                                alert('Validated successfully !!!!');
+                                clearInterval(periodicCall);
+                                let successMessage = [...result.getElementsByTagName('componentSuccesses')].reduce((fullMessage, currentMessage, index) => {
+                                    return fullMessage + '<br>' + '<p  style="color: green;">' + [...currentMessage.getElementsByTagName('fileName')][0].innerHTML+ '</p>';
+                                }, '');
+                                this.template.querySelector('[data-id="Success"]').value = successMessage;
+                            } else {
+                                //show error and component on which error has happened
+                                clearInterval(periodicCall);
+                                let errorMessage = [...result.getElementsByTagName('componentFailures')].reduce((fullMessage, currentMessage, index) => {
+                                    return fullMessage + '<br>' + '<p  style="color: red;">' + [...currentMessage.getElementsByTagName('fileName')][0].innerHTML + '---' + [...currentMessage.getElementsByTagName('problem')][0].innerHTML + '</p>';
+                                }, '');
+                                let successMessage = [...result.getElementsByTagName('componentSuccesses')].reduce((fullMessage, currentMessage, index) => {
+                                    return fullMessage + '<br>' + '<p  style="color: green;">' + [...currentMessage.getElementsByTagName('fileName')][0].innerHTML+ '</p>';
+                                }, '');
+                                this.template.querySelector('[data-id="Success"]').value = successMessage;
+                                this.template.querySelector('[data-id="Error"]').value = errorMessage;
+
+                            }
+                        }
                     }
+                    if (counter === 3) {
+                        clearInterval(periodicCall);
+                    }
+                    counter = counter + 1;
                 })
                 .catch((error) => {
-                    console.log(error)
+                    console.log(error);
                 })
-        }
+        }, 3000);
+    }
+    /**
+     * This method is generic method fro doing deploy/validate call
+     * @param {Boolean} checkOnlyFlag  flag based on that validation or deployment will be done
+     */
+    genericDeployRequest(checkOnlyFlag) {
+        generateZipForProfile(prettifyXML(this.existingXMLDoc), this.metadataType,
+            ([...this.template.querySelectorAll('lightning-combobox')].find((elem) => { return elem.name === 'profilePermissionPicklist' }).value))
+            .then((fileContent) => {
+                let reader = new FileReader();
+                reader.readAsDataURL(fileContent);
+                reader.onloadend = () => {
+                    let base64data = reader.result.replace('data:application/zip;base64,', '');
+                    deployProfilePermission({ zipContent: base64data, deployFlag: checkOnlyFlag })
+                        .then((data) => {
+                            let response = new DOMParser().parseFromString(data, 'text/xml');
+                            let state = response.getElementsByTagName('state');
+                            let deployID = response.getElementsByTagName('id');
+                            let done = response.getElementsByTagName('done');
+                            if (response && [...done][0].innerHTML === 'false' && [...state][0].innerHTML === 'Queued') {
+                                this.checkPeriodicDeployStatus([...deployID][0].innerHTML);
+                            }
+                        })
+                        .catch((error) => {
+                            console.log(error);
+                            alert(error);
+                        })
+                }
+            })
+            .catch((error) => {
+                console.log(error)
+            })
     }
     /**
      * This method will do deploy request to the logged in ORG

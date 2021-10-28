@@ -266,9 +266,10 @@ const compareAllTabAndAddAcessXML = (listOfAllTab, profileXML, metadataType) => 
  */
 const generateZipForProfile = (zipData, metadataType, metadataName) => {
     let zip = new JSZip();
-    zip.file("package.xml", dummyPackageXML.replace('{{_MEMBER}}', metadataName).replace('{{_META_TYPE}}', metadataType));
-    var metadataFolder = zip.folder((metadataType === 'profile') ? 'profiles' : 'permissionsets');
-    metadataFolder.file(metadataName+'.' + metadataType.toUpperCase(), zipData, { base64: false });
+    let unpackagedFolder = zip.folder('unpackaged');
+    unpackagedFolder.file("package.xml", dummyPackageXML.replace('{{_MEMBER}}', metadataName).replace('{{_META_TYPE}}', metadataType));
+    var metadataFolder = unpackagedFolder.folder((metadataType.toLowerCase() === 'profile') ? 'profiles' : 'permissionsets');
+    metadataFolder.file(metadataName+'.' + metadataType.toLowerCase(), zipData, { base64: false });
     return new Promise((resolve, reject) => {
         resolve(zip.generateAsync({ type: "blob" }));
     });
