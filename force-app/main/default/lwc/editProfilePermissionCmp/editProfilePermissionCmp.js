@@ -111,7 +111,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
     /**
      * getter for active sections
      */
-    get activeSections(){
+    get activeSections() {
         return ['A', 'B'];
     }
     /**
@@ -231,7 +231,8 @@ export default class EditProfilePermissionCmp extends LightningElement {
      */
     getProfilePermission(evt) {
         const fieldValue = evt.currentTarget;
-        this.showHideSpinner(true)
+        this.showHideSpinner(true);
+        this.template.querySelector('[data-id="deploy"]').disabled = true;
         const typeObj = this.profileOptionList.find((data) => {
             if (data.value === fieldValue.value) {
                 return true;
@@ -802,26 +803,12 @@ export default class EditProfilePermissionCmp extends LightningElement {
                             this.showHideSpinner(false);
                             //check for status 
                             const status = [...result.getElementsByTagName('status')][0].innerHTML;
-                            if (status === 'Succeeded' || status === 'SucceededPartial') {
+                            if (status) {
                                 //show success message
-                                alert('Validated successfully !!!!');
+                                alert(`Validation ${status}!!!!`);
                                 clearInterval(periodicCall);
-                                let successMessage = [...result.getElementsByTagName('componentSuccesses')].reduce((fullMessage, currentMessage, index) => {
-                                    return fullMessage + '<br>' + '<p  style="color: green;">' + [...currentMessage.getElementsByTagName('fileName')][0].innerHTML+ '</p>';
-                                }, '');
-                                this.template.querySelector('[data-id="Success"]').value = successMessage;
-                            } else {
-                                //show error and component on which error has happened
-                                clearInterval(periodicCall);
-                                let errorMessage = [...result.getElementsByTagName('componentFailures')].reduce((fullMessage, currentMessage, index) => {
-                                    return fullMessage + '<br>' + '<p  style="color: red;">' + [...currentMessage.getElementsByTagName('fileName')][0].innerHTML + '---' + [...currentMessage.getElementsByTagName('problem')][0].innerHTML + '</p>';
-                                }, '');
-                                let successMessage = [...result.getElementsByTagName('componentSuccesses')].reduce((fullMessage, currentMessage, index) => {
-                                    return fullMessage + '<br>' + '<p  style="color: green;">' + [...currentMessage.getElementsByTagName('fileName')][0].innerHTML+ '</p>';
-                                }, '');
-                                this.template.querySelector('[data-id="Success"]').value = successMessage;
-                                this.template.querySelector('[data-id="Error"]').value = errorMessage;
-
+                                this.processDeployMessage(result);
+                                (status==='Succeeded')?this.template.querySelector('[data-id="deploy"]').disabled = false:'';
                             }
                         }
                     }
@@ -872,5 +859,19 @@ export default class EditProfilePermissionCmp extends LightningElement {
      */
     deployMetadata() {
 
+    }
+    /**
+     * This method will process the deploy request response
+     * @param {XMLDocument} status this is XML doc which will hold the response of deploy call
+     */
+    processDeployMessage(result){
+        let errorMessage = [...result.getElementsByTagName('componentFailures')].reduce((fullMessage, currentMessage, index) => {
+            return fullMessage + '<br>' + '<p  style="color: red;">' + [...currentMessage.getElementsByTagName('fileName')][0].innerHTML + '---' + [...currentMessage.getElementsByTagName('problem')][0].innerHTML + '</p>';
+        }, '');
+        let successMessage = [...result.getElementsByTagName('componentSuccesses')].reduce((fullMessage, currentMessage, index) => {
+            return fullMessage + '<br>' + '<p  style="color: green;">' + [...currentMessage.getElementsByTagName('fileName')][0].innerHTML + '</p>';
+        }, '');
+        this.template.querySelector('[data-id="Success"]').value = successMessage;
+        this.template.querySelector('[data-id="Error"]').value = errorMessage;
     }
 }
