@@ -41,6 +41,18 @@ public with sharing class ProfilePermissionStaticUtils {
                                                     '<met:name>{{_ELEMENT_NAME}}</met:name>'+
                                                 '</met:types>';
     /**
+     * This string a memeber which needs to be retrieved
+     */
+    public static String MEMBER_TAG = '<met:members>{{_ELEMENT_ITEM}}</met:members>';
+    /**
+     * This string will be used for multiple item retrieval request to SOAP endpoint
+     * This will be the items which needs to be retrieved
+     */
+    public static String RETRIEVE_MULTIPLE_REQUEST_ITEM ='<met:types>'+
+                                                    '{{_ELEMENT_ITEM}}'+
+                                                    '<met:name>{{_ELEMENT_NAME}}</met:name>'+
+                                                '</met:types>';
+    /**
      * This string will be used for retrieval request status check to SOAP endpoint
      */
     public static String RETRIEVE_REQUEST_STATUS = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:met="http://soap.sforce.com/2006/04/metadata">'+

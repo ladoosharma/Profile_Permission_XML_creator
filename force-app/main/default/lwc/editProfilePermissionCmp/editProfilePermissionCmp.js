@@ -18,6 +18,9 @@ export default class EditProfilePermissionCmp extends LightningElement {
      */
     @track
     metadataType = 'Profile';
+    /**
+     * Picklist option for tab or object
+     */
     tabOrObjPicklists = [{ label: 'Tab', value: 'tab' }, { label: 'Custom/Standard Object', value: 'object' }];
     /**
      * boolean variable for tracking jsZIp instantiation
@@ -115,6 +118,30 @@ export default class EditProfilePermissionCmp extends LightningElement {
         return ['A', 'B'];
     }
     /**
+     * This will let enable/Disable option for end user to retrieve multiple 
+     * Profile or permission at a time
+     * @param {HTMLBodyElement} dom element of the clicked element
+     */
+    changeRetrieveOption(element) {
+        let combobox = this.template.querySelectorAll('lightning-combobox');
+        let dualList = this.template.querySelector('lightning-dual-listbox');
+        if (element.currentTarget.checked) {
+            combobox.forEach((combo)=>{
+                combo.classList.add('slds-hide');
+                combo.classList.remove('slds-show');
+            });
+            dualList.classList.add('slds-show');
+            dualList.classList.remove('slds-hide');
+        } else {
+            combobox.forEach((combo)=>{
+                combo.classList.add('slds-show');
+                combo.classList.remove('slds-hide');
+            });
+            dualList.classList.add('slds-hide');
+            dualList.classList.remove('slds-show');
+        }
+    }
+    /**
      * This is system method which get called by lightning framework when rendering is 
      * completed
      * @param
@@ -152,10 +179,16 @@ export default class EditProfilePermissionCmp extends LightningElement {
             var xmlDoc = new DOMParser().parseFromString(data, 'text/xml');
             let tempList = [...xmlDoc.getElementsByTagName('fullName')].map((node) => {
                 if (node) {
-                    if (node.childNodes) {
+                    if (node.childNodes && node.childNodes[0].nodeValue.toLowerCase() !== 'personaccount') {
                         //creating picklist object list
                         return { value: node.childNodes[0].nodeValue, label: node.childNodes[0].nodeValue };
                     }
+                }
+            }).filter((val) => {
+                if (val) {
+                    return true;
+                } else {
+                    return false;
                 }
             });
             //setting the value
@@ -808,7 +841,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
                                 alert(`Validation ${status}!!!!`);
                                 clearInterval(periodicCall);
                                 this.processDeployMessage(result);
-                                (status==='Succeeded')?this.template.querySelector('[data-id="deploy"]').disabled = false:'';
+                                (status === 'Succeeded') ? this.template.querySelector('[data-id="deploy"]').disabled = false : '';
                             }
                         }
                     }
@@ -858,13 +891,16 @@ export default class EditProfilePermissionCmp extends LightningElement {
      * This method will do deploy request to the logged in ORG
      */
     deployMetadata() {
-
+        if (this.existingXMLDoc) {
+            this.showHideSpinner(true);
+            this.genericDeployRequest(false);
+        }
     }
     /**
      * This method will process the deploy request response
      * @param {XMLDocument} status this is XML doc which will hold the response of deploy call
      */
-    processDeployMessage(result){
+    processDeployMessage(result) {
         let errorMessage = [...result.getElementsByTagName('componentFailures')].reduce((fullMessage, currentMessage, index) => {
             return fullMessage + '<br>' + '<p  style="color: red;">' + [...currentMessage.getElementsByTagName('fileName')][0].innerHTML + '---' + [...currentMessage.getElementsByTagName('problem')][0].innerHTML + '</p>';
         }, '');

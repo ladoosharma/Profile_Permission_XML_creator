@@ -176,20 +176,22 @@ const compareAllObjectAndAddAcessXML = (listOfObjects, profileXML) => {
     let dummyXMLNodes = new DOMParser().parseFromString(dummyObjectXML, 'text/xml');
     if (objectTags) {
         let tempList = [...listOfObjects].filter((data) => {
-            let elementFound = [...objectTags].find((obj) => {
-                if (obj.childNodes) {
-                    let objNamePresent = [...obj.childNodes].find((child) => {
-                        if (child.nodeName === 'object' && child.innerHTML.toLowerCase() === data.toLowerCase()) {
+            if (data) {
+                let elementFound = [...objectTags].find((obj) => {
+                    if (obj.childNodes) {
+                        let objNamePresent = [...obj.childNodes].find((child) => {
+                            if (child.nodeName === 'object' && child.innerHTML.toLowerCase() === data.toLowerCase()) {
+                                return true;
+                            }
+                        });
+                        if (objNamePresent) {
                             return true;
                         }
-                    });
-                    if (objNamePresent) {
-                        return true;
                     }
+                });
+                if (!elementFound) {
+                    return true;
                 }
-            });
-            if (!elementFound) {
-                return true;
             }
         });
         return tempList.map((noAccessObj) => {
@@ -248,7 +250,7 @@ const compareAllTabAndAddAcessXML = (listOfAllTab, profileXML, metadataType) => 
             let tempCloned = dummyXMLNodes.getElementsByTagName((metadataType.toLowerCase() === 'profile') ? 'tabVisibilities' : 'tabSettings')[0].cloneNode(true);
             [...tempCloned.childNodes].forEach((clone) => {
                 if (clone.nodeName !== 'tab') {
-                    clone.innerHTML = 'DefaultOff';
+                    clone.innerHTML = (metadataType.toLowerCase() === 'profile')?'DefaultOff':'None';
                 } else {
                     clone.innerHTML = noAccessObj;
                 }
