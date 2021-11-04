@@ -19,6 +19,7 @@
                             options={profileOptionList}
                             class="slds-hide"
                             ></lightning-dual-listbox>
+            <lightning-button data-id="retrievemultiple" label="Retrieve Selected metadata" name="retrievemultiple" onclick={retrieveMultipleMetadata} class="slds-hide"></lightning-button>
             <lightning-combobox label="Choose Profile/Permission" name="profilePermissionPicklist" options={profileOptionList}
                 onchange={getProfilePermission}></lightning-combobox>
         </div>

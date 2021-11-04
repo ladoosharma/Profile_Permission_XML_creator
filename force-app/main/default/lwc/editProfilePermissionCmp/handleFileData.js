@@ -276,8 +276,24 @@ const generateZipForProfile = (zipData, metadataType, metadataName) => {
         resolve(zip.generateAsync({ type: "blob" }));
     });
 }
+/**
+ * This method will generate zip for multiple Profile/Permission
+ * @param {Map} zipDataMap This map will hold multiple profile/permissionset data
+ * @returns {Promise} Promise object which will be used for getting zip data
+ */
+const generateZipForMultileProfile = (zipDataMap) => {
+    let zip = new JSZip();
+    let unpackagedFolder = zip.folder('unpackaged');
+    unpackagedFolder.file("package.xml", dummyPackageXML.replace('{{_MEMBER}}', metadataName).replace('{{_META_TYPE}}', metadataType));
+    var metadataFolder = unpackagedFolder.folder((metadataType.toLowerCase() === 'profile') ? 'profiles' : 'permissionsets');
+    metadataFolder.file(metadataName+'.' + metadataType.toLowerCase(), zipData, { base64: false });
+    return new Promise((resolve, reject) => {
+        resolve(zip.generateAsync({ type: "blob" }));
+    });
+}
 export {
     generateZipForProfile, compareAllObjectAndAddAcessXML, compareAllTabAndAddAcessXML,
     callFunctionOnInteval, getFileContent, createBlobData, showToastMessage,
-    createDupTabVisibilityTag, createDupObjectAccessTag, createDupFieldAccessTag, prettifyXML
+    createDupTabVisibilityTag, createDupObjectAccessTag, createDupFieldAccessTag, prettifyXML,
+    generateZipForMultileProfile
 };

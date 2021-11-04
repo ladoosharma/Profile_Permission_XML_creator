@@ -118,6 +118,12 @@ export default class EditProfilePermissionCmp extends LightningElement {
         return ['A', 'B'];
     }
     /**
+     * This variable will store multiple profile/Permission xml which will be 
+     * used for extraction
+     */
+    @track
+    multipleMetadataXMLMap;
+    /**
      * This will let enable/Disable option for end user to retrieve multiple 
      * Profile or permission at a time
      * @param {HTMLBodyElement} dom element of the clicked element
@@ -125,20 +131,25 @@ export default class EditProfilePermissionCmp extends LightningElement {
     changeRetrieveOption(element) {
         let combobox = this.template.querySelectorAll('lightning-combobox');
         let dualList = this.template.querySelector('lightning-dual-listbox');
+        let retrievemultipleButton = this.template.querySelector("[data-id='retrievemultiple']");
         if (element.currentTarget.checked) {
-            combobox.forEach((combo)=>{
+            combobox.forEach((combo) => {
                 combo.classList.add('slds-hide');
                 combo.classList.remove('slds-show');
             });
             dualList.classList.add('slds-show');
             dualList.classList.remove('slds-hide');
+            retrievemultipleButton.classList.remove('slds-hide');
+            retrievemultipleButton.classList.add('slds-show');
         } else {
-            combobox.forEach((combo)=>{
+            combobox.forEach((combo) => {
                 combo.classList.add('slds-show');
                 combo.classList.remove('slds-hide');
             });
             dualList.classList.add('slds-hide');
             dualList.classList.remove('slds-show');
+            retrievemultipleButton.classList.add('slds-hide');
+            retrievemultipleButton.classList.remove('slds-show');
         }
     }
     /**
@@ -257,6 +268,57 @@ export default class EditProfilePermissionCmp extends LightningElement {
 
     }
     /**
+     * This method will retrieve multiple profile /permission selected in the 
+     * duallist box
+     * @param {documentElement} element clicked button element
+     */
+    retrieveMultipleMetadata(element) {
+        let value = this.template.querySelector('lightning-dual-listbox').value;
+        //this will create stringified object for selected metadata type
+        let metadataObj = Array.from(this.template.querySelector('lightning-dual-listbox').value).reduce((previous, current) => {
+            var foundItem = this.profileOptionList.find((data) => {
+                if (current.toLowerCase() === data.value.toLowerCase()) {
+                    return true;
+                }
+            });
+            if (foundItem) {
+                if (previous.has(foundItem.type)) {
+                    previous.get(foundItem.type).push(current);
+                    return previous;
+                } else {
+                    return previous.set(foundItem.type, [current]);
+                }
+            }
+        }, new Map());
+        if (value) {
+            getProfilePermissionXML({ metadataComponentMaps: this.reduceMapToStr(metadataObj) })
+                .then((data) => {
+                    //parsing the XML response from apex
+                    let xmlData = new DOMParser().parseFromString(data, 'text/xml');
+                    if (xmlData) {
+                        //generating state as well as retrieve ID which we received from apex
+                        const retrieveRequestId = xmlData.getElementsByTagName('id')[0].childNodes[0].nodeValue;
+                        const status = xmlData.getElementsByTagName('state')[0].childNodes[0].nodeValue;
+                        if (status && retrieveRequestId) {
+                            /**
+                             * If status and retreive request ID is not null calling 
+                             * method to handle recurring apex call to get zip content
+                             * passing request ID as well as Profile/Permissionset Name
+                             */
+                            this.retrieveRequestHandler(retrieveRequestId, metadataObj);
+                        }
+                    }
+                    console.log(data);
+                })
+                .catch((error) => {
+                    //logging error
+                    console.log(error);
+                })
+        } else {
+            alert('select atleast one item!!!')
+        }
+    }
+    /**
      * This method calls the SOAP Api endpoints for getting metadata 
      * related to the selected profile/permissionset as a zip file as string
      * which will be later converted to zip file and read using JSZIp extension
@@ -277,7 +339,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
              * Calling apex method and passing Profile/Permission
              * name and type of metadata as parameter
              */
-            getProfilePermissionXML({ apiName: fieldValue.value, typeOfMetadata: typeObj.type })
+            getProfilePermissionXML({ metadataComponentMaps: this.reduceMapToStr(new Map().set(typeObj.type, [fieldValue.value])) })
                 .then((data) => {
                     //parsing the XML response from apex
                     let xmlData = new DOMParser().parseFromString(data, 'text/xml');
@@ -299,7 +361,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
                 .catch((error) => {
                     //logging error
                     console.log(error);
-                })
+                });
         }
     }
     /**
@@ -335,12 +397,29 @@ export default class EditProfilePermissionCmp extends LightningElement {
                         getFileContent(createBlobData(zipContent))
                             .then((zip) => {
                                 //handling the async promise which will return the zip content of the retrieved request
-                                zip.files['unpackaged/' + ((this.metadataType.toLowerCase() === 'profile') ? 'profiles' : 'permissionsets') + '/' + fieldValue.value + '.' + this.metadataType.toLowerCase()].async("string").then((content) => {
-                                    this.showContent(content);
-                                    this.showHideSpinner(false);
-                                    this.fileName = fieldValue.value + '.' + this.metadataType.toLowerCase();
-                                    console.log(content);
-                                });
+                                if (typeof fieldValue === 'String') {
+                                    zip.files['unpackaged/' + ((this.metadataType.toLowerCase() === 'profile') ? 'profiles' : 'permissionsets') + '/' + fieldValue.value + '.' + this.metadataType.toLowerCase()].async("string").then((content) => {
+                                        this.showContent(content);
+                                        this.showHideSpinner(false);
+                                        this.fileName = fieldValue.value + '.' + this.metadataType.toLowerCase();
+                                        console.log(content);
+                                    });
+                                } else if (typeof fieldValue === 'map' || typeof fieldValue === 'object') {
+                                    this.multipleMetadataXMLMap = new Map();
+                                    zip.folder('unpackaged/profiles').forEach((relativePath, file)=>{
+                                        console.log(relativePath);
+                                        file.async('string').then((data)=>{
+                                            this.multipleMetadataXMLMap.set(relativePath, new DOMParser().parseFromString(data, 'text/xml'));
+                                        });
+                                    });
+                                    zip.folder('unpackaged/permissionsets').forEach((relativePath, file)=>{
+                                        console.log(relativePath);
+                                        file.async('string').then((data)=>{
+                                            this.multipleMetadataXMLMap.set(relativePath, new DOMParser().parseFromString(data, 'text/xml'));
+                                        });
+                                    });
+                                }
+
                             }).catch((e) => {
                                 //showing any error
                                 console.log(e)
@@ -707,7 +786,9 @@ export default class EditProfilePermissionCmp extends LightningElement {
      * @param {Event} evt 
      */
     downloadFile(evt) {
-        if (this.existingXMLDoc) {
+        let downloadMultiple = this.template.querySelector('data-id="retrievemultiple"');
+
+        if (this.existingXMLDoc && !downloadMultiple.checked) {
             let fileText = prettifyXML(this.existingXMLDoc.documentElement);
             var element = document.createElement('a');
             element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(fileText));
@@ -719,8 +800,10 @@ export default class EditProfilePermissionCmp extends LightningElement {
             element.click();
 
             document.body.removeChild(element);
-        } else {
-            alert('Please select file !!!!')
+        } else if(downloadMultiple.checked && this.multipleMetadataXMLMap){
+            //generate renewed XML with tab access and object access addition
+        }else{
+            alert('No file to be dowloaded!!!!');
         }
 
     }
@@ -909,5 +992,16 @@ export default class EditProfilePermissionCmp extends LightningElement {
         }, '');
         this.template.querySelector('[data-id="Success"]').value = successMessage;
         this.template.querySelector('[data-id="Error"]').value = errorMessage;
+    }
+    /**
+     * This method converts the map to string
+     * @param {Map} mapData map which needs to be stringified in form of key pair object
+     * @returns {String} stringified map
+     */
+    reduceMapToStr(mapData) {
+        return JSON.stringify(Array.from(mapData).reduce((obj, [key, value]) => {
+            obj[key] = value;
+            return obj;
+        }, {}))
     }
 }
