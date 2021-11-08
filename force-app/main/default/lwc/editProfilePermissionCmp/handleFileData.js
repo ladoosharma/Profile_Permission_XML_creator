@@ -7,6 +7,15 @@ const dummyPackageXML = '<?xml version="1.0" encoding="UTF-8"?>'+
     '</types>'+
     '<version>53.0</version>'+
 '</Package>';
+const dummyPackageXMLForMultipleFiles = '<?xml version="1.0" encoding="UTF-8"?>'+
+'<Package xmlns="http://soap.sforce.com/2006/04/metadata">'+
+    '{{_MEMBERS_TAG}}'+
+    '<version>53.0</version>'+
+'</Package>';
+const eachMetadataMembers ='<types>'+
+                                '{{_MEMBERS}}'+
+                                '<name>{{_META_TYPE}}</name>'+
+                            '</types>';
 /**
  * This will be used to generate dummy /clone tag which needs to be appended to
  * Existing XML
@@ -176,20 +185,22 @@ const compareAllObjectAndAddAcessXML = (listOfObjects, profileXML) => {
     let dummyXMLNodes = new DOMParser().parseFromString(dummyObjectXML, 'text/xml');
     if (objectTags) {
         let tempList = [...listOfObjects].filter((data) => {
-            let elementFound = [...objectTags].find((obj) => {
-                if (obj.childNodes) {
-                    let objNamePresent = [...obj.childNodes].find((child) => {
-                        if (child.nodeName === 'object' && child.innerHTML.toLowerCase() === data.toLowerCase()) {
+            if (data) {
+                let elementFound = [...objectTags].find((obj) => {
+                    if (obj.childNodes) {
+                        let objNamePresent = [...obj.childNodes].find((child) => {
+                            if (child.nodeName === 'object' && child.innerHTML.toLowerCase() === data.toLowerCase()) {
+                                return true;
+                            }
+                        });
+                        if (objNamePresent) {
                             return true;
                         }
-                    });
-                    if (objNamePresent) {
-                        return true;
                     }
+                });
+                if (!elementFound) {
+                    return true;
                 }
-            });
-            if (!elementFound) {
-                return true;
             }
         });
         return tempList.map((noAccessObj) => {
@@ -248,7 +259,7 @@ const compareAllTabAndAddAcessXML = (listOfAllTab, profileXML, metadataType) => 
             let tempCloned = dummyXMLNodes.getElementsByTagName((metadataType.toLowerCase() === 'profile') ? 'tabVisibilities' : 'tabSettings')[0].cloneNode(true);
             [...tempCloned.childNodes].forEach((clone) => {
                 if (clone.nodeName !== 'tab') {
-                    clone.innerHTML = 'DefaultOff';
+                    clone.innerHTML = (metadataType.toLowerCase() === 'profile')?'DefaultOff':'None';
                 } else {
                     clone.innerHTML = noAccessObj;
                 }
@@ -274,8 +285,55 @@ const generateZipForProfile = (zipData, metadataType, metadataName) => {
         resolve(zip.generateAsync({ type: "blob" }));
     });
 }
+/**
+ * This method will generate zip for multiple Profile/Permission
+ * @param {Map} zipDataMap This map will hold multiple profile/permissionset data
+ * @returns {Promise} Promise object which will be used for getting zip data
+ */
+const generateZipForMultileProfile = (zipDataMap) => {
+    let zip = new JSZip();
+    let unpackagedFolder = zip.folder('unpackaged');
+    let eachMembers = '<members>{{_MEMBER}}</members>';
+    let XMLbody = '';
+    let packageXMLMap = new Map();
+    zipDataMap.
+    forEach((value, key) => {
+        const meta = key.split('.')[1];
+        const metaVal = key.split('.')[0];
+        if(packageXMLMap.has(meta)){
+            packageXMLMap.get(meta).push(metaVal);
+        }else{
+            packageXMLMap.set(meta, [metaVal]);
+        }
+    });
+    packageXMLMap.forEach((value, key)=>{
+        let tempMember = eachMetadataMembers.replace('{{_META_TYPE}}', (key==='profile' || key ==='Profile')?'Profile':'PermissionSet');
+        let tempAllMembers = value.reduce((previous, current)=>{
+            return previous + eachMembers.replace('{{_MEMBER}}', current.split('.')[0]);
+        },'');
+        XMLbody += tempMember.replace('{{_MEMBERS}}', tempAllMembers);
+    });
+    unpackagedFolder.file("package.xml", dummyPackageXMLForMultipleFiles.replace('{{_MEMBERS_TAG}}', XMLbody));
+    let profileFolder = unpackagedFolder.folder('profiles');
+    let permissionSetFolder = unpackagedFolder.folder('permissionsets');
+    zipDataMap.forEach((zipData, key)=>{
+        if(key.split('.')[1].toLowerCase().includes('profile')){
+            //add to profile folder
+            profileFolder.file(key, prettifyXML(zipData), {base64: false});
+        }else if(key.split('.')[1].toLowerCase().includes('permissionset')){
+            //add to permissionset folder
+            permissionSetFolder.file(key, prettifyXML(zipData), {base64: false});
+        }
+    });
+    // var metadataFolder = unpackagedFolder.folder((metadataType.toLowerCase() === 'profile') ? 'profiles' : 'permissionsets');
+    // metadataFolder.file(metadataName+'.' + metadataType.toLowerCase(), zipData, { base64: false });
+    return new Promise((resolve, reject) => {
+        resolve(zip.generateAsync({ type: "blob" }));
+    });
+}
 export {
     generateZipForProfile, compareAllObjectAndAddAcessXML, compareAllTabAndAddAcessXML,
     callFunctionOnInteval, getFileContent, createBlobData, showToastMessage,
-    createDupTabVisibilityTag, createDupObjectAccessTag, createDupFieldAccessTag, prettifyXML
+    createDupTabVisibilityTag, createDupObjectAccessTag, createDupFieldAccessTag, prettifyXML,
+    generateZipForMultileProfile
 };
