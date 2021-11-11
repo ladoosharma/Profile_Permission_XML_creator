@@ -270,17 +270,16 @@ const compareAllTabAndAddAcessXML = (listOfAllTab, profileXML, metadataType) => 
 }
 /**
  * This method will help generate the ZIP data which will be used for deployment/validation
- * @param {String} zipData profile/Permission set data
- * @param {String} metadataType type of metadata {profile/Permissionset}
- * @param {String} metadataName name of metadata
+ * @param {String} zipContent profile/Permission set data as an object
  * @returns {Promise} return a file generation promise
  */
-const generateZipForProfile = (zipData, metadataType, metadataName) => {
+const generateZipForProfile = (zipContent) => {
+    //zipData, metadataType, metadataName
     let zip = new JSZip();
     let unpackagedFolder = zip.folder('unpackaged');
-    unpackagedFolder.file("package.xml", dummyPackageXML.replace('{{_MEMBER}}', metadataName).replace('{{_META_TYPE}}', metadataType));
-    var metadataFolder = unpackagedFolder.folder((metadataType.toLowerCase() === 'profile') ? 'profiles' : 'permissionsets');
-    metadataFolder.file(metadataName+'.' + metadataType.toLowerCase(), zipData, { base64: false });
+    unpackagedFolder.file("package.xml", dummyPackageXML.replace('{{_MEMBER}}', zipContent.metadataName).replace('{{_META_TYPE}}', zipContent.metadataType));
+    var metadataFolder = unpackagedFolder.folder((zipContent.metadataType.toLowerCase() === 'profile') ? 'profiles' : 'permissionsets');
+    metadataFolder.file(zipContent.metadataName+'.' + zipContent.metadataType.toLowerCase(), zipContent.zipData, { base64: false });
     return new Promise((resolve, reject) => {
         resolve(zip.generateAsync({ type: "blob" }));
     });

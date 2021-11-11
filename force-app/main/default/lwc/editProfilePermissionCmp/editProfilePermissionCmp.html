@@ -42,6 +42,7 @@
         message-toggle-inactive="Single Retrieve" name="retrieveMultiple" onchange={changeRetrieveOption}></lightning-input>
         <br>
         <lightning-button-group>
+            <lightning-button label="Connect With External Org" name="connect" onclick={openOrgConnector}></lightning-button>
             <lightning-button label="Download file" name="download" onclick={downloadFile}></lightning-button>
             <lightning-button label="Validate with Org" name="validate" onclick={validateFile}></lightning-button>
             <lightning-button data-id="deploy" label="Deploy to org" name="deploy" onclick={deployMetadata} disabled>
@@ -74,6 +75,9 @@
                 <c-edit-tab-level-access-cmp ontabaccesschange={handleTabVisibility} metadata-type={metadataType}></c-edit-tab-level-access-cmp>
             </div>
         </fieldset>
+        <div class="slds-hide" data-id="orgConnector">
+            <c-create-session-with-other-org-cmp onclosemodal={hideOrgConnector}></c-create-session-with-other-org-cmp>
+        </div>
         <lightning-spinner alternative-text="Loading" variant="inverse" class="slds-hide"></lightning-spinner>
     </div>
 </template>

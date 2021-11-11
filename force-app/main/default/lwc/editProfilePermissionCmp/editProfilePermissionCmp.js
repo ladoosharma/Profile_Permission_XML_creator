@@ -414,7 +414,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
                                         console.log(relativePath);
                                         file.async('string').then((data) => {
                                             let xmlFile = new DOMParser().parseFromString(data, 'text/xml');
-                                            compareAllObjectAndAddAcessXML(this.objectList.map((data)=>{return data.value}), xmlFile).forEach((objAccess) => {
+                                            compareAllObjectAndAddAcessXML(this.objectList.map((data) => { return data.value }), xmlFile).forEach((objAccess) => {
                                                 const exitingObjIfAny = [...xmlFile.getElementsByTagName('objectPermissions')][0];
                                                 (exitingObjIfAny) ? xmlFile.documentElement.insertBefore(objAccess, exitingObjIfAny) : xmlFile.documentElement.appendChild(objAccess);
                                             });
@@ -422,14 +422,14 @@ export default class EditProfilePermissionCmp extends LightningElement {
                                                 const exitingTabIfAny = [...xmlFile.getElementsByTagName('tabVisibilities')][0];
                                                 (exitingTabIfAny) ? xmlFile.documentElement.insertBefore(objAccess, exitingTabIfAny) : xmlFile.documentElement.appendChild(objAccess);
                                             });
-                                            this.multipleMetadataXMLMap.set(relativePath, xmlFile);                                      
+                                            this.multipleMetadataXMLMap.set(relativePath, xmlFile);
                                         });
                                     });
                                     zip.folder('unpackaged/permissionsets').forEach((relativePath, file) => {
                                         console.log(relativePath);
                                         file.async('string').then((data) => {
                                             let xmlFile = new DOMParser().parseFromString(data, 'text/xml');
-                                            compareAllObjectAndAddAcessXML(this.objectList.map((data)=>{return data.value}), xmlFile).forEach((objAccess) => {
+                                            compareAllObjectAndAddAcessXML(this.objectList.map((data) => { return data.value }), xmlFile).forEach((objAccess) => {
                                                 const exitingObjIfAny = [...xmlFile.getElementsByTagName('objectPermissions')][0];
                                                 (exitingObjIfAny) ? xmlFile.documentElement.insertBefore(objAccess, exitingObjIfAny) : xmlFile.documentElement.appendChild(objAccess);
                                             });
@@ -812,8 +812,8 @@ export default class EditProfilePermissionCmp extends LightningElement {
         let downloadMultiple = this.template.querySelector('[data-id="retrievemultiplecheck"]');
 
         if (this.existingXMLDoc && !downloadMultiple.checked) {
-            generateZipForProfile(prettifyXML(this.existingXMLDoc), this.metadataType,
-                ([...this.template.querySelectorAll('lightning-combobox')].find((elem) => { return elem.name === 'profilePermissionPicklist' }).value))
+            generateZipForProfile({zipData: prettifyXML(this.existingXMLDoc), metadataType: this.metadataType,
+                metadataName:([...this.template.querySelectorAll('lightning-combobox')].find((elem) => { return elem.name === 'profilePermissionPicklist' }).value)})
                 .then(content => {
                     this.downloadFileHandler(content);
                 })
@@ -853,202 +853,232 @@ export default class EditProfilePermissionCmp extends LightningElement {
             document.body.removeChild(element);
         }
     }
-        /**
-         * This method checks if we need to render object picklist or tab picklist
-         * @param {Event} evt 
-         */
-        tabOrObjects(evt) {
-            if (evt.currentTarget) {
-                this.template.querySelector("[data-id='objects']").disabled = false;
-                if (evt.currentTarget.value === 'object') {
-                    this.allObjOptions = this.objectList;
-                } else if (evt.currentTarget.value === 'tab') {
-                    this.allObjOptions = this.tabList;
-                }
+    /**
+     * This method checks if we need to render object picklist or tab picklist
+     * @param {Event} evt 
+     */
+    tabOrObjects(evt) {
+        if (evt.currentTarget) {
+            this.template.querySelector("[data-id='objects']").disabled = false;
+            if (evt.currentTarget.value === 'object') {
+                this.allObjOptions = this.objectList;
+            } else if (evt.currentTarget.value === 'tab') {
+                this.allObjOptions = this.tabList;
             }
         }
-        /**
-         * This method will handle tab access change for existing tab or new tab
-         * @param {CustomEvent} evt Custom event send from child component
-         */
-        handleTabVisibility(evt) {
-            let xmlTree = this.existingXMLDoc;
-            if (xmlTree && evt.detail) {
-                let existingTabVisiblities = xmlTree.getElementsByTagName((this.metadataType.toLowerCase() === 'profile') ? 'tabVisibilities' : 'tabSettings');
-                //finding the existing tag
-                let changedTabVisibilty = [...existingTabVisiblities].filter((node) => {
+    }
+    /**
+     * This method will handle tab access change for existing tab or new tab
+     * @param {CustomEvent} evt Custom event send from child component
+     */
+    handleTabVisibility(evt) {
+        let xmlTree = this.existingXMLDoc;
+        if (xmlTree && evt.detail) {
+            let existingTabVisiblities = xmlTree.getElementsByTagName((this.metadataType.toLowerCase() === 'profile') ? 'tabVisibilities' : 'tabSettings');
+            //finding the existing tag
+            let changedTabVisibilty = [...existingTabVisiblities].filter((node) => {
+                if (node.childNodes) {
+                    let child = node.childNodes;
+                    let tabAccess = [...child].filter((child) => {
+                        if (child.nodeName === 'tab' && child.innerHTML.toLowerCase() === evt.detail.tabName.toLocaleLowerCase()) {
+                            return true;
+                        }
+                    });
+                    return (tabAccess.length > 0);
+                }
+            });
+            //if found then changing the access in XML
+            if (changedTabVisibilty.length > 0) {
+                [...xmlTree.getElementsByTagName((this.metadataType.toLowerCase() === 'profile') ? 'tabVisibilities' : 'tabSettings')].forEach((node, index) => {
                     if (node.childNodes) {
-                        let child = node.childNodes;
-                        let tabAccess = [...child].filter((child) => {
+                        let tabAccess = [...node.childNodes].find((child) => {
                             if (child.nodeName === 'tab' && child.innerHTML.toLowerCase() === evt.detail.tabName.toLocaleLowerCase()) {
                                 return true;
                             }
                         });
-                        return (tabAccess.length > 0);
-                    }
-                });
-                //if found then changing the access in XML
-                if (changedTabVisibilty.length > 0) {
-                    [...xmlTree.getElementsByTagName((this.metadataType.toLowerCase() === 'profile') ? 'tabVisibilities' : 'tabSettings')].forEach((node, index) => {
-                        if (node.childNodes) {
-                            let tabAccess = [...node.childNodes].find((child) => {
-                                if (child.nodeName === 'tab' && child.innerHTML.toLowerCase() === evt.detail.tabName.toLocaleLowerCase()) {
-                                    return true;
+                        if (tabAccess) {
+                            [...[...xmlTree.getElementsByTagName((this.metadataType.toLowerCase() === 'profile') ? 'tabVisibilities' : 'tabSettings')][index].childNodes].forEach((child, indexVar) => {
+                                if (child.nodeName === 'visibility') {
+                                    [...[...xmlTree.getElementsByTagName((this.metadataType.toLowerCase() === 'profile') ? 'tabVisibilities' : 'tabSettings')][index].childNodes][indexVar].innerHTML = evt.detail.tabAccess;
                                 }
                             });
-                            if (tabAccess) {
-                                [...[...xmlTree.getElementsByTagName((this.metadataType.toLowerCase() === 'profile') ? 'tabVisibilities' : 'tabSettings')][index].childNodes].forEach((child, indexVar) => {
-                                    if (child.nodeName === 'visibility') {
-                                        [...[...xmlTree.getElementsByTagName((this.metadataType.toLowerCase() === 'profile') ? 'tabVisibilities' : 'tabSettings')][index].childNodes][indexVar].innerHTML = evt.detail.tabAccess;
-                                    }
-                                });
-                            }
                         }
-                    });
-                } else if (existingTabVisiblities.length > 0) {
-                    //if not found cloning any existing tag and changing innerhtml
-                    let clonedAccess = existingTabVisiblities[0].cloneNode(true);
-                    [...clonedAccess.childNodes].forEach((node, indx) => {
-                        if (node.nodeName === 'tab') {
-                            clonedAccess.childNodes[indx].innerHTML = evt.detail.tabName;
-                        }
-                        if (node.nodeName === 'visibility') {
-                            clonedAccess.childNodes[indx].innerHTML = evt.detail.tabAccess;
-                        }
-                    });
-                    xmlTree.documentElement.insertBefore(clonedAccess, existingTabVisiblities[0]);
-
-                } else {
-                    //if tag not present in profile creating a new one and appendning 
-                    let tabVisibilityElement = createDupTabVisibilityTag(undefined, evt.detail, this.metadataType);
-                    xmlTree.documentElement.appendChild(tabVisibilityElement);
-                }
-                this.existingXMLDoc = xmlTree;
-
-            }
-        }
-        /**
-         * Generic method to show hide spinner
-         * @param {Boolean} flag 
-         */
-        showHideSpinner(flag) {
-            let spinner = this.template.querySelector('lightning-spinner');
-            if (spinner) {
-                spinner.classList = [];
-                (flag) ? spinner.classList.add('slds-show') : spinner.classList.add('slds-hide');
-            }
-        }
-        /**
-         * This method will validate the profile/Permission against logged in ORG
-         */
-        validateFile() {
-            if (this.existingXMLDoc) {
-                this.showHideSpinner(true);
-                this.genericDeployRequest(true);
-            }
-        }
-        /**
-         * This method will call apex periodically to check the status of deployment request
-         * @param {String} deploymentId this is the deployment/validation ID of which 
-         * we need to check status on 5 sec interval 
-         */
-        checkPeriodicDeployStatus(deploymentId) {
-            let counter = 0;
-            let periodicCall = setInterval(() => {
-                checkDeployStatus({ deploymentId: deploymentId })
-                    .then((data) => {
-                        console.log(data)
-                        const result = [...((new DOMParser().parseFromString(data, 'text/xml')).getElementsByTagName('result'))][0];
-                        if (result) {
-                            const isDone = [...result.getElementsByTagName('done')][0];
-                            if (isDone.innerHTML === 'true') {
-                                this.showHideSpinner(false);
-                                //check for status 
-                                const status = [...result.getElementsByTagName('status')][0].innerHTML;
-                                if (status) {
-                                    //show success message
-                                    alert(`Validation ${status}!!!!`);
-                                    clearInterval(periodicCall);
-                                    this.processDeployMessage(result);
-                                    (status === 'Succeeded') ? this.template.querySelector('[data-id="deploy"]').disabled = false : '';
-                                }
-                            }
-                        }
-                        if (counter === 3) {
-                            clearInterval(periodicCall);
-                        }
-                        counter = counter + 1;
-                    })
-                    .catch((error) => {
-                        console.log(error);
-                    })
-            }, 3000);
-        }
-        /**
-         * This method is generic method fro doing deploy/validate call
-         * @param {Boolean} checkOnlyFlag  flag based on that validation or deployment will be done
-         * @param {Boolean} hasMultipleFile This flag will denote that we have mutiple file to validate
-         */
-        genericDeployRequest(checkOnlyFlag) {
-            generateZipForProfile(prettifyXML(this.existingXMLDoc), this.metadataType,
-                ([...this.template.querySelectorAll('lightning-combobox')].find((elem) => { return elem.name === 'profilePermissionPicklist' }).value))
-                .then((fileContent) => {
-                    let reader = new FileReader();
-                    reader.readAsDataURL(fileContent);
-                    reader.onloadend = () => {
-                        let base64data = reader.result.replace('data:application/zip;base64,', '');
-                        deployProfilePermission({ zipContent: base64data, deployFlag: checkOnlyFlag })
-                            .then((data) => {
-                                let response = new DOMParser().parseFromString(data, 'text/xml');
-                                let state = response.getElementsByTagName('state');
-                                let deployID = response.getElementsByTagName('id');
-                                let done = response.getElementsByTagName('done');
-                                if (response && [...done][0].innerHTML === 'false' && [...state][0].innerHTML === 'Queued') {
-                                    this.checkPeriodicDeployStatus([...deployID][0].innerHTML);
-                                }
-                            })
-                            .catch((error) => {
-                                console.log(error);
-                                alert(error);
-                            })
                     }
-                })
-                .catch((error) => {
-                    console.log(error)
-                })
-        }
-        /**
-         * This method will do deploy request to the logged in ORG
-         */
-        deployMetadata() {
-            if (this.existingXMLDoc) {
-                this.showHideSpinner(true);
-                this.genericDeployRequest(false);
+                });
+            } else if (existingTabVisiblities.length > 0) {
+                //if not found cloning any existing tag and changing innerhtml
+                let clonedAccess = existingTabVisiblities[0].cloneNode(true);
+                [...clonedAccess.childNodes].forEach((node, indx) => {
+                    if (node.nodeName === 'tab') {
+                        clonedAccess.childNodes[indx].innerHTML = evt.detail.tabName;
+                    }
+                    if (node.nodeName === 'visibility') {
+                        clonedAccess.childNodes[indx].innerHTML = evt.detail.tabAccess;
+                    }
+                });
+                xmlTree.documentElement.insertBefore(clonedAccess, existingTabVisiblities[0]);
+
+            } else {
+                //if tag not present in profile creating a new one and appendning 
+                let tabVisibilityElement = createDupTabVisibilityTag(undefined, evt.detail, this.metadataType);
+                xmlTree.documentElement.appendChild(tabVisibilityElement);
             }
-        }
-        /**
-         * This method will process the deploy request response
-         * @param {XMLDocument} status this is XML doc which will hold the response of deploy call
-         */
-        processDeployMessage(result) {
-            let errorMessage = [...result.getElementsByTagName('componentFailures')].reduce((fullMessage, currentMessage, index) => {
-                return fullMessage + '<br>' + '<p  style="color: red;">' + [...currentMessage.getElementsByTagName('fileName')][0].innerHTML + '---' + [...currentMessage.getElementsByTagName('problem')][0].innerHTML + '</p>';
-            }, '');
-            let successMessage = [...result.getElementsByTagName('componentSuccesses')].reduce((fullMessage, currentMessage, index) => {
-                return fullMessage + '<br>' + '<p  style="color: green;">' + [...currentMessage.getElementsByTagName('fileName')][0].innerHTML + '</p>';
-            }, '');
-            this.template.querySelector('[data-id="Success"]').value = successMessage;
-            this.template.querySelector('[data-id="Error"]').value = errorMessage;
-        }
-        /**
-         * This method converts the map to string
-         * @param {Map} mapData map which needs to be stringified in form of key pair object
-         * @returns {String} stringified map
-         */
-        reduceMapToStr(mapData) {
-            return JSON.stringify(Array.from(mapData).reduce((obj, [key, value]) => {
-                obj[key] = value;
-                return obj;
-            }, {}))
+            this.existingXMLDoc = xmlTree;
+
         }
     }
+    /**
+     * Generic method to show hide spinner
+     * @param {Boolean} flag 
+     */
+    showHideSpinner(flag) {
+        let spinner = this.template.querySelector('lightning-spinner');
+        if (spinner) {
+            spinner.classList = [];
+            (flag) ? spinner.classList.add('slds-show') : spinner.classList.add('slds-hide');
+        }
+    }
+    /**
+     * This method will validate the profile/Permission against logged in ORG
+     */
+    validateFile() {
+        let validateMultiple = this.template.querySelector('[data-id="retrievemultiplecheck"]');
+        if (this.existingXMLDoc && !validateMultiple.checked) {
+            this.showHideSpinner(true);
+            this.genericDeployRequest(true, false);
+        } else if (validateMultiple.checked && this.multipleMetadataXMLMap) {
+            this.showHideSpinner(true);
+            this.genericDeployRequest(true, true);
+        }
+    }
+    /**
+     * This method will call apex periodically to check the status of deployment request
+     * @param {String} deploymentId this is the deployment/validation ID of which 
+     * we need to check status on 5 sec interval 
+     */
+    checkPeriodicDeployStatus(deploymentId) {
+        let counter = 0;
+        let periodicCall = setInterval(() => {
+            checkDeployStatus({ deploymentId: deploymentId })
+                .then((data) => {
+                    console.log(data)
+                    const result = [...((new DOMParser().parseFromString(data, 'text/xml')).getElementsByTagName('result'))][0];
+                    if (result) {
+                        const isDone = [...result.getElementsByTagName('done')][0];
+                        if (isDone.innerHTML === 'true') {
+                            this.showHideSpinner(false);
+                            //check for status 
+                            const status = [...result.getElementsByTagName('status')][0].innerHTML;
+                            if (status) {
+                                //show success message
+                                alert(`Validation ${status}!!!!`);
+                                clearInterval(periodicCall);
+                                this.processDeployMessage(result);
+                                (status === 'Succeeded') ? this.template.querySelector('[data-id="deploy"]').disabled = false : '';
+                            }
+                        }
+                    }
+                    if (counter === 3) {
+                        clearInterval(periodicCall);
+                    }
+                    counter = counter + 1;
+                })
+                .catch((error) => {
+                    console.log(error);
+                })
+        }, 3000);
+    }
+    /**
+     * This method is generic method fro doing deploy/validate call
+     * @param {Boolean} checkOnlyFlag  flag based on that validation or deployment will be done
+     * @param {Boolean} hasMultipleFile This flag will denote that we have mutiple file to validate
+     * @param {Boolean} verifyMultipleFlag This flag will determine if we need to validate multiple files at a time
+     */
+    genericDeployRequest(checkOnlyFlag, verifyMultipleFlag) {
+        let generateZip = (verifyMultipleFlag) ? generateZipForMultileProfile: generateZipForProfile;
+        // generateZipForProfile(prettifyXML(this.existingXMLDoc), this.metadataType,
+        //     ([...this.template.querySelectorAll('lightning-combobox')].find((elem) => { return elem.name === 'profilePermissionPicklist' }).value))
+        ////zipData, metadataType, metadataName
+        generateZip((verifyMultipleFlag)?(this.multipleMetadataXMLMap) :{zipData: prettifyXML(this.existingXMLDoc), metadataType: this.metadataType,
+            metadataName: ([...this.template.querySelectorAll('lightning-combobox')].find((elem) => { return elem.name === 'profilePermissionPicklist' }).value)})
+            .then((fileContent) => {
+                let reader = new FileReader();
+                reader.readAsDataURL(fileContent);
+                reader.onloadend = () => {
+                    let base64data = reader.result.replace('data:application/zip;base64,', '');
+                    deployProfilePermission({ zipContent: base64data, deployFlag: checkOnlyFlag })
+                        .then((data) => {
+                            let response = new DOMParser().parseFromString(data, 'text/xml');
+                            let state = response.getElementsByTagName('state');
+                            let deployID = response.getElementsByTagName('id');
+                            let done = response.getElementsByTagName('done');
+                            if (response && [...done][0].innerHTML === 'false' && [...state][0].innerHTML === 'Queued') {
+                                this.checkPeriodicDeployStatus([...deployID][0].innerHTML);
+                            }
+                        })
+                        .catch((error) => {
+                            console.log(error);
+                            alert(error);
+                        })
+                }
+            })
+            .catch((error) => {
+                console.log(error)
+            })
+    }
+    /**
+     * This method will do deploy request to the logged in ORG
+     */
+    deployMetadata() {
+        let validateMultiple = this.template.querySelector('[data-id="retrievemultiplecheck"]');
+        if (this.existingXMLDoc && !validateMultiple) {
+            this.showHideSpinner(true);
+            this.genericDeployRequest(false, false);
+        } else if (validateMultiple && this.multipleMetadataXMLMap) {
+            this.showHideSpinner(true);
+            this.genericDeployRequest(false, true);
+        }
+    }
+    /**
+     * This method will process the deploy request response
+     * @param {XMLDocument} status this is XML doc which will hold the response of deploy call
+     */
+    processDeployMessage(result) {
+        let errorMessage = [...result.getElementsByTagName('componentFailures')].reduce((fullMessage, currentMessage, index) => {
+            return fullMessage + '<br>' + '<p  style="color: red;">' + [...currentMessage.getElementsByTagName('fileName')][0].innerHTML + '---' + [...currentMessage.getElementsByTagName('problem')][0].innerHTML + '</p>';
+        }, '');
+        let successMessage = [...result.getElementsByTagName('componentSuccesses')].reduce((fullMessage, currentMessage, index) => {
+            return fullMessage + '<br>' + '<p  style="color: green;">' + [...currentMessage.getElementsByTagName('fileName')][0].innerHTML + '</p>';
+        }, '');
+        this.template.querySelector('[data-id="Success"]').value = successMessage;
+        this.template.querySelector('[data-id="Error"]').value = errorMessage;
+    }
+    /**
+     * This method converts the map to string
+     * @param {Map} mapData map which needs to be stringified in form of key pair object
+     * @returns {String} stringified map
+     */
+    reduceMapToStr(mapData) {
+        return JSON.stringify(Array.from(mapData).reduce((obj, [key, value]) => {
+            obj[key] = value;
+            return obj;
+        }, {}))
+    }
+    /**
+     * This method will open the component which will
+     * help connect with other org
+     */
+    openOrgConnector(){
+        let orgConnectorCmp = this.template.querySelector("[data-id='orgConnector']");
+        orgConnectorCmp.classList.remove('slds-hide');
+        orgConnectorCmp.classList.add('slds-show');
+    }
+    /**
+     * This method will hide the org connector cmp
+     */
+    hideOrgConnector(){
+        let orgConnectorCmp = this.template.querySelector("[data-id='orgConnector']");
+        orgConnectorCmp.classList.remove('slds-show');
+        orgConnectorCmp.classList.add('slds-hide');
+    }
+}
