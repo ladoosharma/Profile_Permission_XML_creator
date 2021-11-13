@@ -212,11 +212,65 @@ public with sharing class EditProfilePermissionController {
             throw new AuraHandledException(e.getMessage());
         }
     }
+    /**************************************************************************************
+    * @Description  This method will connect with external org and create a session in the logged in org
+    * @Param		String orgInfoString- Stringified JSON object of the external org info
+    * @Return       String - request status as a form of XML which will be parsed in javascript 
+    * @Example     
+    * EditProfilePermissionController.createSessionWithExternalOrg('{object as a string}')
+    */
+    @AuraEnabled
+    public static Map<String, String> createSessionWithExternalOrg(String orgInfoString){
+            Map<String, String> orgInfoObj = (Map<String, String>) JSON.deserialize(orgInfoString, Map<String, String>.class);
+            String loginBody = ProfilePermissionStaticUtils.LOGIN_REQUEST_BODY.replace('{{_USERNAME}}', orgInfoObj.get('userName')).replace('{{_PASSWORD}}', orgInfoObj.get('password'));
+            ProfilePermissionHTTPHandler handler = new ProfilePermissionHTTPHandler(orgInfoObj.get('environment')+'/services/Soap/u/52.0/'+ orgInfoObj.get('orgId') ,
+                                                        generateHeader(), loginBody);
+            Map<String, String> responsedata = new Map<String, String>();
+            HTTPResponse response = handler.callEndpoint('POST', true);
+            Dom.Document doc = response.getBodyDocument();
+        
+            //Retrieve the root element for this document.
+            Dom.XMLNode sessionDetails = doc.getRootElement();
+            Dom.XmlNode results = sessionDetails.getChildElements()[0].getChildElements()[0].getChildElements()[0];
+            if(response.getStatusCode() == 200){
+                for(Dom.XmlNode node : results.getChildElements()){
+                    responsedata.put(node.getName(), node.getText());
+                }
+            }else{
+                //message will change here
+                throw new CalloutException((String)response.getBody());
+            } 
+            if(responsedata.containsKey('sessionId') && responsedata.containsKey('userId')){
+                createOtherOrgSessionRecord(responsedata);
+                responsedata.remove('sessionId');
+            }
+            return responsedata;
+        
+    }
+    /**************************************************************************************
+    * @Description  This method will create SOAP header
+    * @Return       Map<String, Object> - header map
+    * @Example     
+    * generateHeader()
+    */
     private static Map<String, Object> generateHeader(){
         Map<String, Object> headerColumn = new Map<String, Object>();
         headerColumn.put('Content-Type', 'text/xml;charset=UTF-8');
         headerColumn.put('Accept', 'text/xml');
         headerColumn.put('SOAPAction', '""');
         return headerColumn;
+    }
+    /**************************************************************************************
+    * @Description  This method will create session in session cache
+    * @Param		Map<String, String> sessionInfo- session information as a map
+    * @Return       None
+    * @Example     
+    * generateHeader()
+    */
+    private static void createOtherOrgSessionRecord(Map<String, String> sessionInfo){
+        if(!sessionInfo.isEmpty()){
+            
+                Cache.Session.getPartition('local.ProfileDeployment').put(UserInfo.getUserId(), sessionInfo);
+        }
     }
 }

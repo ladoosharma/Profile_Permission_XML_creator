@@ -1,11 +1,17 @@
 import { LightningElement, track } from 'lwc';
+import createSessionWithExternalOrg from '@salesforce/apex/EditProfilePermissionController.createSessionWithExternalOrg'
 
 export default class CreateSessionWithOtherOrgCmp extends LightningElement {
     /**
      * This variable will store the user and org information
      */
+    orgInfo = { userName: '', password: '', orgId: '', environment: 'https://test.salesforce.com' };
+    /**
+     * Disable all input field when session is acquired
+     * @type {Boolean}
+     */
     @track
-    orgInfo= {userName:'', password:'', orgId:'', environment:'https://test.salesforce.com'};
+    fieldDisabled = false;
     /**
      * getter for the radiobutton
      */
@@ -16,27 +22,53 @@ export default class CreateSessionWithOtherOrgCmp extends LightningElement {
     /**
      * This method will fire and event for closing the modal
      */
-    closeModal(){
+    closeModal() {
         this.closeModalEventDispathcher();
     }
     /**
      * This method will call apex and remove any session available for the current user
      * for other org
      */
-    disconnectAndRemoveSId(){
+    disconnectAndRemoveSId() {
 
     }
     /**
      * This method will call apex and create session information for the user for the org
      * where user want to connect externally
      */
-    connectAndAddSid(){
-
+    connectAndAddSid() {
+        let data = [...this.template.querySelectorAll('lightning-input')].reduce((previous, current) => {
+            previous[current.name] = current.value;
+            return previous;
+        }, {});
+        let valid = true;
+        data['environment'] = this.template.querySelector('lightning-radio-group').value;
+        [...this.template.querySelectorAll('lightning-input')].forEach((element) => {
+            if (valid) {
+                valid = element.reportValidity();
+            }
+        });
+        if (!valid) {
+            alert('Populate required data!!!');
+            //here toast message will be put
+            return
+        }
+        createSessionWithExternalOrg({ orgInfoString: JSON.stringify(data) })
+            .then((data) => {
+                if (data) {
+                    this.fieldDisabled = true;
+                    this.dispatchEvent(new CustomEvent('sessiondetail', { detail: data }));
+                }
+            })
+            .catch((error) => {
+                let errorXML = new DOMParser().parseFromString(error.message, 'text/xml');
+                alert([...errorXML.getElementsByTagName('faultstring')][0].innerHTML);
+            })
     }
     /**
      * Generic method for firing close modal event
      */
-    closeModalEventDispathcher(){
+    closeModalEventDispathcher() {
         this.dispatchEvent(new CustomEvent('closemodal'));
     }
 }

@@ -1081,4 +1081,16 @@ export default class EditProfilePermissionCmp extends LightningElement {
         orgConnectorCmp.classList.remove('slds-show');
         orgConnectorCmp.classList.add('slds-hide');
     }
+    /**
+     * This method will set the external org value for the validation calls
+     * @param {Event} evt This is the detail received from the event fired from child components
+     */
+    setNewOrgData(evt){
+        let detailsOfOrg = evt.detail;
+        console.log(detailsOfOrg);
+        if(detailsOfOrg){
+            this.hideOrgConnector();
+            alert('Session Acquired!!!!!');
+        }
+    }
 }

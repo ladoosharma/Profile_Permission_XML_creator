@@ -76,7 +76,7 @@
             </div>
         </fieldset>
         <div class="slds-hide" data-id="orgConnector">
-            <c-create-session-with-other-org-cmp onclosemodal={hideOrgConnector}></c-create-session-with-other-org-cmp>
+            <c-create-session-with-other-org-cmp onsessiondetail={setNewOrgData} onclosemodal={hideOrgConnector}></c-create-session-with-other-org-cmp>
         </div>
         <lightning-spinner alternative-text="Loading" variant="inverse" class="slds-hide"></lightning-spinner>
     </div>

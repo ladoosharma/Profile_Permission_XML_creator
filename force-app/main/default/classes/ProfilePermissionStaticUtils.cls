@@ -152,4 +152,14 @@ public with sharing class ProfilePermissionStaticUtils {
     '</met:checkDeployStatus>'+
  '</soapenv:Body>'+
 '</soapenv:Envelope>';
+public static String LOGIN_REQUEST_BODY = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:partner.soap.sforce.com">'+
+'<soapenv:Header>'+
+'</soapenv:Header>'+
+'<soapenv:Body>'+
+   '<urn:login>'+
+      '<urn:username>{{_USERNAME}}</urn:username>'+
+      '<urn:password>{{_PASSWORD}}</urn:password>'+
+   '</urn:login>'+
+'</soapenv:Body>'+
+'</soapenv:Envelope>';
 }
