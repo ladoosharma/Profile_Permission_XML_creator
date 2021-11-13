@@ -174,16 +174,21 @@ public with sharing class EditProfilePermissionController {
     /**************************************************************************************
     * @Description  This method will send deploy/validate request to org
     * @Param		String zipContent- base64 encoded zip file, String deployFlag -if validation is only needed
+    * @Param		Boolean useExternalOrg- this flag will determine if deploy or validate request to be sent to other org
     * @Return       String - Request ID as a form of XML which will be parsed in javascript 
     * @Example     
     * EditProfilePermissionController.deployProfilePermission('blob base 64 data', true)
     */
     @AuraEnabled
-    public static String deployProfilePermission(String zipContent, Boolean deployFlag){
+    public static String deployProfilePermission(String zipContent, Boolean deployFlag, Boolean useExternalOrg){
         try {
-        String DEPLOY_REQUEST_BOSY = ProfilePermissionStaticUtils.DEPLOY_REQUEST_XML_BODY.replace('{{_SESSION_ID}}', Page.SessionIDHack.getContent().toString())
+        Map<String, String> sessionInfo;
+        if(useExternalOrg){
+            sessionInfo = getOtherOrgSession();
+        }
+        String DEPLOY_REQUEST_BOSY = ProfilePermissionStaticUtils.DEPLOY_REQUEST_XML_BODY.replace('{{_SESSION_ID}}', (useExternalOrg)?sessionInfo.get('sessionId'):Page.SessionIDHack.getContent().toString())
                                 .replace('{{_CHECK_ONLY}}', String.valueOf(deployFlag)).replace('{{_ZIP_CONTENT}}', zipContent);
-        ProfilePermissionHTTPHandler handler = new ProfilePermissionHTTPHandler(URL.getSalesforceBaseUrl().toExternalForm()+'/services/Soap/m/52.0/'+UserInfo.getOrganizationId() ,
+        ProfilePermissionHTTPHandler handler = new ProfilePermissionHTTPHandler((useExternalOrg)?sessionInfo.get('metadataServerUrl'):(URL.getSalesforceBaseUrl().toExternalForm()+'/services/Soap/m/52.0/'+UserInfo.getOrganizationId()) ,
                                                 generateHeader(), DEPLOY_REQUEST_BOSY);
         HTTPResponse response = handler.callEndpoint('POST', true);
         return response.getBody();  
@@ -200,11 +205,16 @@ public with sharing class EditProfilePermissionController {
     * EditProfilePermissionController.checkDeployStatus('salesforce 18 or 16 digit ID')
     */
     @AuraEnabled
-    public static string checkDeployStatus(String deploymentId){
+    public static string checkDeployStatus(String deploymentId, Boolean useExternalOrg){
         try {
-            String REQUEST_BODY = ProfilePermissionStaticUtils.DEPLOY_STATUS_BODY.replace('{{_SESSION_ID}}', Page.SessionIDHack.getContent().toString())
+            
+            Map<String, String> sessionInfo;
+            if(useExternalOrg){
+                sessionInfo = getOtherOrgSession();
+            }
+            String REQUEST_BODY = ProfilePermissionStaticUtils.DEPLOY_STATUS_BODY.replace('{{_SESSION_ID}}', (useExternalOrg)?sessionInfo.get('sessionId'):Page.SessionIDHack.getContent().toString())
                                     .replace('{{_DEPLOY_ID}}', deploymentId);
-            ProfilePermissionHTTPHandler handler = new ProfilePermissionHTTPHandler(URL.getSalesforceBaseUrl().toExternalForm()+'/services/Soap/m/52.0/'+UserInfo.getOrganizationId() ,
+            ProfilePermissionHTTPHandler handler = new ProfilePermissionHTTPHandler((useExternalOrg)?sessionInfo.get('metadataServerUrl'):(URL.getSalesforceBaseUrl().toExternalForm()+'/services/Soap/m/52.0/'+UserInfo.getOrganizationId()) ,
                                                     generateHeader(), REQUEST_BODY);
             HTTPResponse response = handler.callEndpoint('POST', true);
             return response.getBody();  
@@ -228,12 +238,20 @@ public with sharing class EditProfilePermissionController {
             Map<String, String> responsedata = new Map<String, String>();
             HTTPResponse response = handler.callEndpoint('POST', true);
             Dom.Document doc = response.getBodyDocument();
-        
+            System.debug(response.getBody());
             //Retrieve the root element for this document.
             Dom.XMLNode sessionDetails = doc.getRootElement();
             Dom.XmlNode results = sessionDetails.getChildElements()[0].getChildElements()[0].getChildElements()[0];
             if(response.getStatusCode() == 200){
                 for(Dom.XmlNode node : results.getChildElements()){
+                    if(node.getName() == 'userInfo'){
+                        for(Dom.XmlNode uInfoNode: node.getChildElements()){
+                            if(uInfoNode.getName() =='userName' || uInfoNode.getName() =='userEmail' && uInfoNode.getName() == 'organizationId'){
+                                responsedata.put(uInfoNode.getName(), uInfoNode.getText());
+                            }
+                        }
+                        continue;
+                    }
                     responsedata.put(node.getName(), node.getText());
                 }
             }else{
@@ -273,4 +291,55 @@ public with sharing class EditProfilePermissionController {
                 Cache.Session.getPartition('local.ProfileDeployment').put(UserInfo.getUserId(), sessionInfo);
         }
     }
+    /**************************************************************************************
+    * @Description  This method will return active external org session
+    * @Param		String sessionId- session information 
+    * @Return       None
+    * @Example     
+    * getOtherOrgSessionData()
+    */
+    private static Map<String, String> getOtherOrgSession(){
+        if(Cache.Session.getPartition('local.ProfileDeployment').contains(UserInfo.getUserId())){
+            Map<String, String> sessionMap = (Map<String, String>)Cache.Session.getPartition('local.ProfileDeployment').get(UserInfo.getUserId());
+            return sessionMap;
+        }
+        throw new CalloutException('Session doesnt exist for the user.');
+    }
+    /**************************************************************************************
+    * @Description  This method will remove any logged in session infor for the logged in USer
+    * @Param		None
+    * @Return       None
+    * @Example     
+    * EditProfilePermissionController.removeLoggedInSession()
+    */
+    @AuraEnabled
+    public static Boolean removeLoggedInSession(){
+        if(Cache.Session.getPartition('local.ProfileDeployment').contains(UserInfo.getUserId())){
+            Cache.Session.getPartition('local.ProfileDeployment').remove(UserInfo.getUserId());
+            return true;
+        }
+        throw new AuraHandledException('Session Id for this user not found!!');
+    }
+    /**************************************************************************************
+    * @Description  This method will create remote site setting asynchronosly if there is no info available for connected org
+    * @Param		String endpoint endpoint which needs to be connected 
+    * @Param		String orgId organization Id of the new org(this will be api Name of the org) 
+    * @Return       None
+    * @Example     
+    * EditProfilePermissionController.createRemoteSiteSetting('https://test.salesforce.com', '010010011cdfx')
+    */
+    // @future(Callout = true)
+    // public static void createRemoteSiteSetting(String endpoint, string orgId){
+    //     //instantiation handler class for REST call
+    //     ProfilePermissionHTTPHandler handler = new ProfilePermissionHTTPHandler(URL.getSalesforceBaseUrl().toExternalForm()+
+    //     '/services/data/v52.0/tooling/query/?q=SELECT+Id,EndpointUrl+from+RemoteProxy+where+EndpointUrl=\''+endpoint+'\'',
+    //     null, '');
+    //     //returning response
+    //     HttpResponse response= handler.callEndpoint('GET', false);
+    //     Map<String, Object> responseParser = (Map<String, Object>)JSON.deserializeUntyped(response.getBody());
+    //     List<Object> record = (List<Object>)responseParser.get('records');
+    //     if(record.isEmpty()){
+    //        //create remote site record 
+    //     }
+    // // }
 }

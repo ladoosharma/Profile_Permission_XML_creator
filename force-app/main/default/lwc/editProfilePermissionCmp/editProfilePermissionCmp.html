@@ -4,24 +4,29 @@
     <div class="slds-form" style="position: relative;
     background-color: #6a9fee;
     height: 1000px;">
+        <template if:true={loggedInOrgDetails}>
+            <div class="slds-form-element slds-form-element_horizontal">
+                <p>User Name : <b>{loggedInOrgDetails.userName}</b></p>
+                <p>User Email : <b>{loggedInOrgDetails.userEmail}</b></p>
+                <p>Organization Id : <b>{loggedInOrgDetails.organizationId}</b></p>
+                <p>Instance URL : <b>{loggedInOrgDetails.serverUrl}</b></p>
+            </div>
+        </template>
+        <br>
         <!--<c-load-j-szip-component></c-load-j-szip-component>-->
-
         <div class="slds-form-element slds-form-element_horizontal">
             <!--<label class="slds-form-element__label" for="horizontal-input-id-01">Choose Profile/Permission</label>-->
             <!--<div class="slds-form-element__control">
                 <input type="file" name="profilePermissionFile" onchange={handleUploadFinished}/>
             </div>-->
-            <lightning-dual-listbox name="profilepermission"
-                            label="Select Profile/Permission set"
-                            source-label="Available"
-                            selected-label="Selected"
-                            field-level-help="Select multiple profile/permission to retrieve"
-                            options={profileOptionList}
-                            class="slds-hide"
-                            ></lightning-dual-listbox>
-            <lightning-button data-id="retrievemultiple" label="Retrieve Selected metadata" name="retrievemultiple" onclick={retrieveMultipleMetadata} class="slds-hide"></lightning-button>
-            <lightning-combobox label="Choose Profile/Permission" name="profilePermissionPicklist" options={profileOptionList}
-                onchange={getProfilePermission}></lightning-combobox>
+            <lightning-dual-listbox name="profilepermission" label="Select Profile/Permission set"
+                source-label="Available" selected-label="Selected"
+                field-level-help="Select multiple profile/permission to retrieve" options={profileOptionList}
+                class="slds-hide"></lightning-dual-listbox>
+            <lightning-button data-id="retrievemultiple" label="Retrieve Selected metadata" name="retrievemultiple"
+                onclick={retrieveMultipleMetadata} class="slds-hide"></lightning-button>
+            <lightning-combobox label="Choose Profile/Permission" name="profilePermissionPicklist"
+                options={profileOptionList} onchange={getProfilePermission}></lightning-combobox>
         </div>
         <!--<div class="slds-form-element slds-form-element_horizontal">
             <label class="slds-form-element__label" for="horizontal-input-id-02">All PermissionSet Or Profile</label>
@@ -30,19 +35,21 @@
         </div>-->
         <div class="slds-form-element slds-form-element_horizontal">
             <!--<label class="slds-form-element__label" for="horizontal-input-id-02">Tab/Objects</label>-->
-            <lightning-combobox data-id="taborobjects" label="Tab/Objects" name="taborobjects" options={tabOrObjPicklists} disabled="true"
-                onchange={tabOrObjects}></lightning-combobox>
+            <lightning-combobox data-id="taborobjects" label="Tab/Objects" name="taborobjects"
+                options={tabOrObjPicklists} disabled="true" onchange={tabOrObjects}></lightning-combobox>
             <br><br>
             <!--<label class="slds-form-element__label" for="horizontal-input-id-02">Objects/Tab Name</label>-->
-            <lightning-combobox data-id="objects" label="Objects/Tab Name" name="objects" options={allObjOptions} disabled="true"
-                onchange={fetchObjMetadata}></lightning-combobox>
+            <lightning-combobox data-id="objects" label="Objects/Tab Name" name="objects" options={allObjOptions}
+                disabled="true" onchange={fetchObjMetadata}></lightning-combobox>
         </div>
         <br>
-        <lightning-input type="toggle" data-id="retrievemultiplecheck" label="Retrieve multiple element" message-toggle-active="Multiple Retrieve" 
-        message-toggle-inactive="Single Retrieve" name="retrieveMultiple" onchange={changeRetrieveOption}></lightning-input>
+        <lightning-input type="toggle" data-id="retrievemultiplecheck" label="Retrieve multiple element"
+            message-toggle-active="Multiple Retrieve" message-toggle-inactive="Single Retrieve" name="retrieveMultiple"
+            onchange={changeRetrieveOption}></lightning-input>
         <br>
         <lightning-button-group>
-            <lightning-button label="Connect With External Org" name="connect" onclick={openOrgConnector}></lightning-button>
+            <lightning-button label="Connect With External Org" name="connect" onclick={openOrgConnector}>
+            </lightning-button>
             <lightning-button label="Download file" name="download" onclick={downloadFile}></lightning-button>
             <lightning-button label="Validate with Org" name="validate" onclick={validateFile}></lightning-button>
             <lightning-button data-id="deploy" label="Deploy to org" name="deploy" onclick={deployMetadata} disabled>
@@ -54,8 +61,7 @@
             <div class="slds-form-element__control">
                 <!--Showing error message here as well as on which component has failed-->
 
-                <lightning-accordion allow-multiple-sections-open
-                    active-section-name={activeSections}>
+                <lightning-accordion allow-multiple-sections-open active-section-name={activeSections}>
                     <lightning-accordion-section name="A" label="Successfull Component">
                         <lightning-formatted-rich-text data-id="Success"></lightning-formatted-rich-text>
                     </lightning-accordion-section>
@@ -72,11 +78,13 @@
             </div>
             <div data-id="tabTable" class="slds-form-element__control" style="display:none">
                 <!--data table for tab level access will go here -->
-                <c-edit-tab-level-access-cmp ontabaccesschange={handleTabVisibility} metadata-type={metadataType}></c-edit-tab-level-access-cmp>
+                <c-edit-tab-level-access-cmp ontabaccesschange={handleTabVisibility} metadata-type={metadataType}>
+                </c-edit-tab-level-access-cmp>
             </div>
         </fieldset>
         <div class="slds-hide" data-id="orgConnector">
-            <c-create-session-with-other-org-cmp onsessiondetail={setNewOrgData} onclosemodal={hideOrgConnector}></c-create-session-with-other-org-cmp>
+            <c-create-session-with-other-org-cmp onsessiondetail={setNewOrgData} onclosemodal={hideOrgConnector}>
+            </c-create-session-with-other-org-cmp>
         </div>
         <lightning-spinner alternative-text="Loading" variant="inverse" class="slds-hide"></lightning-spinner>
     </div>

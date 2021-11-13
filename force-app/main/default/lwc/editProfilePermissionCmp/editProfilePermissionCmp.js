@@ -16,6 +16,11 @@ import {
 
 export default class EditProfilePermissionCmp extends LightningElement {
     /**
+     * Details of org where user is logged in
+     * @type {Object}
+     */
+    loggedInOrgDetails;
+    /**
      * @type {String}
      * type of metadata selected , either permission or profile
      */
@@ -812,8 +817,10 @@ export default class EditProfilePermissionCmp extends LightningElement {
         let downloadMultiple = this.template.querySelector('[data-id="retrievemultiplecheck"]');
 
         if (this.existingXMLDoc && !downloadMultiple.checked) {
-            generateZipForProfile({zipData: prettifyXML(this.existingXMLDoc), metadataType: this.metadataType,
-                metadataName:([...this.template.querySelectorAll('lightning-combobox')].find((elem) => { return elem.name === 'profilePermissionPicklist' }).value)})
+            generateZipForProfile({
+                zipData: prettifyXML(this.existingXMLDoc), metadataType: this.metadataType,
+                metadataName: ([...this.template.querySelectorAll('lightning-combobox')].find((elem) => { return elem.name === 'profilePermissionPicklist' }).value)
+            })
                 .then(content => {
                     this.downloadFileHandler(content);
                 })
@@ -959,7 +966,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
     checkPeriodicDeployStatus(deploymentId) {
         let counter = 0;
         let periodicCall = setInterval(() => {
-            checkDeployStatus({ deploymentId: deploymentId })
+            checkDeployStatus({ deploymentId: deploymentId, useExternalOrg: (this.loggedInOrgDetails)?true:false })
                 .then((data) => {
                     console.log(data)
                     const result = [...((new DOMParser().parseFromString(data, 'text/xml')).getElementsByTagName('result'))][0];
@@ -984,7 +991,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
                     counter = counter + 1;
                 })
                 .catch((error) => {
-                    console.log(error);
+                    alert(error.message);
                 })
         }, 3000);
     }
@@ -995,18 +1002,20 @@ export default class EditProfilePermissionCmp extends LightningElement {
      * @param {Boolean} verifyMultipleFlag This flag will determine if we need to validate multiple files at a time
      */
     genericDeployRequest(checkOnlyFlag, verifyMultipleFlag) {
-        let generateZip = (verifyMultipleFlag) ? generateZipForMultileProfile: generateZipForProfile;
+        let generateZip = (verifyMultipleFlag) ? generateZipForMultileProfile : generateZipForProfile;
         // generateZipForProfile(prettifyXML(this.existingXMLDoc), this.metadataType,
         //     ([...this.template.querySelectorAll('lightning-combobox')].find((elem) => { return elem.name === 'profilePermissionPicklist' }).value))
         ////zipData, metadataType, metadataName
-        generateZip((verifyMultipleFlag)?(this.multipleMetadataXMLMap) :{zipData: prettifyXML(this.existingXMLDoc), metadataType: this.metadataType,
-            metadataName: ([...this.template.querySelectorAll('lightning-combobox')].find((elem) => { return elem.name === 'profilePermissionPicklist' }).value)})
+        generateZip((verifyMultipleFlag) ? (this.multipleMetadataXMLMap) : {
+            zipData: prettifyXML(this.existingXMLDoc), metadataType: this.metadataType,
+            metadataName: ([...this.template.querySelectorAll('lightning-combobox')].find((elem) => { return elem.name === 'profilePermissionPicklist' }).value)
+        })
             .then((fileContent) => {
                 let reader = new FileReader();
                 reader.readAsDataURL(fileContent);
                 reader.onloadend = () => {
                     let base64data = reader.result.replace('data:application/zip;base64,', '');
-                    deployProfilePermission({ zipContent: base64data, deployFlag: checkOnlyFlag })
+                    deployProfilePermission({ zipContent: base64data, deployFlag: checkOnlyFlag, useExternalOrg: (this.loggedInOrgDetails)?true:false  })
                         .then((data) => {
                             let response = new DOMParser().parseFromString(data, 'text/xml');
                             let state = response.getElementsByTagName('state');
@@ -1068,7 +1077,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
      * This method will open the component which will
      * help connect with other org
      */
-    openOrgConnector(){
+    openOrgConnector() {
         let orgConnectorCmp = this.template.querySelector("[data-id='orgConnector']");
         orgConnectorCmp.classList.remove('slds-hide');
         orgConnectorCmp.classList.add('slds-show');
@@ -1076,7 +1085,7 @@ export default class EditProfilePermissionCmp extends LightningElement {
     /**
      * This method will hide the org connector cmp
      */
-    hideOrgConnector(){
+    hideOrgConnector() {
         let orgConnectorCmp = this.template.querySelector("[data-id='orgConnector']");
         orgConnectorCmp.classList.remove('slds-show');
         orgConnectorCmp.classList.add('slds-hide');
@@ -1085,12 +1094,9 @@ export default class EditProfilePermissionCmp extends LightningElement {
      * This method will set the external org value for the validation calls
      * @param {Event} evt This is the detail received from the event fired from child components
      */
-    setNewOrgData(evt){
+    setNewOrgData(evt) {
         let detailsOfOrg = evt.detail;
-        console.log(detailsOfOrg);
-        if(detailsOfOrg){
-            this.hideOrgConnector();
-            alert('Session Acquired!!!!!');
-        }
+        this.hideOrgConnector();
+        this.loggedInOrgDetails = detailsOfOrg;
     }
 }

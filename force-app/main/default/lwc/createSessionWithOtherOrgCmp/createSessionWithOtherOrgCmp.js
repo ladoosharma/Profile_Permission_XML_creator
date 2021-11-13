@@ -1,5 +1,6 @@
 import { LightningElement, track } from 'lwc';
 import createSessionWithExternalOrg from '@salesforce/apex/EditProfilePermissionController.createSessionWithExternalOrg'
+import removeLoggedInSession from '@salesforce/apex/EditProfilePermissionController.removeLoggedInSession'
 
 export default class CreateSessionWithOtherOrgCmp extends LightningElement {
     /**
@@ -30,7 +31,18 @@ export default class CreateSessionWithOtherOrgCmp extends LightningElement {
      * for other org
      */
     disconnectAndRemoveSId() {
-
+        removeLoggedInSession()
+        .then(data=>{
+            this.fieldDisabled = false;
+            alert('Session cleared for external org!!');
+            this.dispatchEvent(new CustomEvent('sessiondetail', { detail: undefined }));
+            [...this.template.querySelectorAll('lightning-input')].forEach((element) => {
+                element.value = '';
+            });
+        })
+        .catch(error=>{
+            alert(error.message);
+        })
     }
     /**
      * This method will call apex and create session information for the user for the org
@@ -58,6 +70,7 @@ export default class CreateSessionWithOtherOrgCmp extends LightningElement {
                 if (data) {
                     this.fieldDisabled = true;
                     this.dispatchEvent(new CustomEvent('sessiondetail', { detail: data }));
+                    alert('Session Acquired!!!!!');
                 }
             })
             .catch((error) => {
