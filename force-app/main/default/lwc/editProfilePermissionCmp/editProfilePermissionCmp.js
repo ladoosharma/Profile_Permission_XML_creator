@@ -1027,12 +1027,12 @@ export default class EditProfilePermissionCmp extends LightningElement {
                         })
                         .catch((error) => {
                             console.log(error);
-                            alert(error);
+                            alert(error.message);
                         })
                 }
             })
             .catch((error) => {
-                console.log(error)
+                console.log(error.message)
             })
     }
     /**
